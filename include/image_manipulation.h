@@ -12,7 +12,7 @@
 int save_as(FILE* file, char *name);
 int save(FILE* file);
 int mirror_horizontally();
-int mirro_vertically();
+int mirror_vertically();
 int to_grayscale();
 int quantize_tones(int n_tones);
 
