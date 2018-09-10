@@ -11,6 +11,7 @@ add_library(image_manipulation_lib STATIC
         include/image_manipulation.h
         lib/img/image_manipulation.c
 )
+target_link_libraries(image_manipulation_lib jpeg)
 set_target_properties(image_manipulation_lib PROPERTIES PUBLIC_HEADER include/image_manipulation.h)
 
 # GUI library
@@ -22,7 +23,7 @@ set_target_properties(gui_lib PROPERTIES PUBLIC_HEADER include/gui_lib.h)
 
 # Main executable
 add_executable(fpi_assignment_1
-        src/main.cpp
+        src/main.c
 )
 target_link_libraries(fpi_assignment_1
         image_manipulation_lib
