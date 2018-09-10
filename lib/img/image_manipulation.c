@@ -176,4 +176,13 @@ JSAMPLE *pixel_array_to_jsample_array(image_t *image) {
     return jsample_array;
 }
 
+image_t *mirror_vertically(image_t *image) {
+    for (int top = 0, bot = image->height - 1; top < image->height / 2; ++top, --bot) {
+        unsigned char *swap = image->pixel_array[top];
+        image->pixel_array[top] = image->pixel_array[bot];
+        image->pixel_array[bot] = swap;
+    }
+}
+
+
 

@@ -14,12 +14,7 @@ int main(int argc, char *argv[]) {
         exit(EXIT_FAILURE);
     }
 
-    // Print all pixels RGB value
-    /*for (int i = 0; i < image->height; ++i) {
-        for (int j = 0; j < image->width; j += 3) {
-            printf("(%d,%d,%d)\n", (int) pixels_array[i][j], (int) pixels_array[i][j + 1], (int) pixels_array[i][j + 2]);
-        }
-    }*/
+    mirror_vertically(image);
 
     // Compress pixels_array into output image
     jpeg_compress(image, argv[2]);
