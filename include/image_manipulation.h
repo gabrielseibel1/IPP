@@ -11,19 +11,42 @@
 #ifndef FPI_ASSIGNMENT_1_IMAGE_MANIPULATION_H
 #define FPI_ASSIGNMENT_1_IMAGE_MANIPULATION_H
 
+enum result {
+    COMPRESSION_SUCCESS,
+    COMPRESSION_FAILURE,
+    DECOMPRESSION_SUCCESS,
+    DECOMPRESSION_FAILURE,
+    FOPEN_FAILURE
+};
+
 struct error_manager {
     struct jpeg_error_mgr pub;  // "public" fields
 
     jmp_buf setjmp_buffer;  // for return to caller
 };
-typedef struct error_manager * error_manager_ptr;
+typedef struct error_manager *error_manager_ptr;
 
-int open(char *name);
-int save_as(FILE* file, char *name);
-int save(FILE* file);
-int mirror_horizontally();
-int mirror_vertically();
-int to_grayscale();
+typedef struct image_struct {
+    char *filename;
+    int height;
+    int width;
+    int channels;
+    unsigned char **pixel_array;
+    enum result last_operation;
+} image_t;
+
+/**
+ * Initializes an image_t in heap memory.
+ * @return Pointer to initialized image_t.
+ */
+image_t *new_image();
+
+image_t *mirror_horizontally(image_t*);
+
+image_t *mirror_vertically(image_t *image);
+
+image_t *to_grayscale(image_t *image);
+
 int quantize_tones(int n_tones);
 
 /**
@@ -34,7 +57,7 @@ int quantize_tones(int n_tones);
  * @param output_filename the name of the output file.
  * @return Non-negative if successful, negative if encountered errors.
  */
-int jpeg_compress(JSAMPLE *image_buffer, int image_height, int image_width, char *output_filename);
+void jpeg_compress(image_t *image, char *output_filename);
 
 /**
  * Decompresses a JPEG image into an image buffer using JPEG algorithm.
@@ -42,7 +65,7 @@ int jpeg_compress(JSAMPLE *image_buffer, int image_height, int image_width, char
  * @param input_filename the name of the input file.
  * @return Non-negative if successful, negative if encountered errors.
  */
-int jpeg_decompress(unsigned char ***pixels_array_ptr, int *image_height, int *image_width, int *channels, char *input_filename);
+image_t *jpeg_decompress(char *input_filename);
 
 /**
  * Replaces the standard error_exit method:
@@ -58,6 +81,6 @@ void my_error_exit(j_common_ptr cinfo);
  * @param components The number of channels of the image.
  * @return Allocated and set JSAMPLE array.
  */
-JSAMPLE *pixel_array_to_jsample_array(unsigned char **pixel_array, int height, int width, int components);
+JSAMPLE *pixel_array_to_jsample_array(image_t *image);
 
 #endif //FPI_ASSIGNMENT_1_IMAGE_MANIPULATION_H

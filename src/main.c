@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <image_manipulation.h>
+#include <stdlib.h>
 
 int main(int argc, char *argv[]) {
     if (argc != 3) {
@@ -7,18 +8,19 @@ int main(int argc, char *argv[]) {
     }
 
     // Decompress source image
-    unsigned char **pixels_array;
-    int height, width, channels;
-    jpeg_decompress(&pixels_array, &height, &width, &channels, argv[1]);
-
-    // Print all pixels RGB value
-    for (int i = 0; i < height; ++i) {
-        for (int j = 0; j < width; j += 3) {
-            //printf("(%d,%d,%d)\n", (int) pixels_array[i][j], (int) pixels_array[i][j + 1], (int) pixels_array[i][j + 2]);
-        }
+    image_t *image = jpeg_decompress(argv[1]);
+    if (image->last_operation != DECOMPRESSION_SUCCESS) {
+        fprintf(stderr, "Decompression failed for file %s", argv[1]);
+        exit(EXIT_FAILURE);
     }
 
+    // Print all pixels RGB value
+    /*for (int i = 0; i < image->height; ++i) {
+        for (int j = 0; j < image->width; j += 3) {
+            printf("(%d,%d,%d)\n", (int) pixels_array[i][j], (int) pixels_array[i][j + 1], (int) pixels_array[i][j + 2]);
+        }
+    }*/
+
     // Compress pixels_array into output image
-    JSAMPLE *jsample_array = pixel_array_to_jsample_array(pixels_array, height, width, channels);
-    jpeg_compress(jsample_array, height, width, argv[2]);
+    jpeg_compress(image, argv[2]);
 }
