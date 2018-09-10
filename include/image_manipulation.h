@@ -41,13 +41,13 @@ typedef struct image_struct {
  */
 image_t *new_image();
 
-image_t *mirror_horizontally(image_t*);
+image_t *mirror_horizontally(image_t* image);
 
 image_t *mirror_vertically(image_t *image);
 
 image_t *to_grayscale(image_t *image);
 
-int quantize_tones(int n_tones);
+image_t *quantize_tones(image_t *image, int n_tones);
 
 /**
  * Compresses an image buffer to a file using JPEG algorithm.
