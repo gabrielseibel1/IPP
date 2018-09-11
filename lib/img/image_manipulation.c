@@ -184,6 +184,23 @@ void mirror_vertically(image_t *image) {
     }
 }
 
+void mirror_horizontally(image_t *image) {
+    // Iterate over lines
+    for (int i = 0; i < image->height; ++i) {
+        // Iterate over columns
+        for (int left = 0, right = image->channels * (image->width - 1);
+             left < (image->width * image->channels) / 2; left += image->channels, right -= image->channels) {
+
+            // Swap all channels
+            unsigned char *swap = malloc(sizeof(unsigned char) * image->channels);
+            for (int c = 0; c < image->channels; ++c) {
+                swap[c] = image->pixel_array[i][left + c];
+                image->pixel_array[i][left + c] = image->pixel_array[i][right + c];
+                image->pixel_array[i][right + c] = swap[c];
+            }
+        }
+    }
+}
 
 
 

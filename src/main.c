@@ -14,7 +14,7 @@ int main(int argc, char *argv[]) {
         exit(EXIT_FAILURE);
     }
 
-    mirror_vertically(image);
+    mirror_horizontally(image);
 
     // Compress pixels_array into output image
     jpeg_compress(image, argv[2]);
