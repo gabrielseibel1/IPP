@@ -34,6 +34,8 @@ private:
 
     void OnMirrorHorizontally(wxCommandEvent &event);
 
+    void OnGrayScale(wxCommandEvent &event);
+
     void OnExit(wxCommandEvent &event);
 
     void OnAbout(wxCommandEvent &event);
@@ -45,7 +47,8 @@ enum {
     ID_OPEN = 1,
     ID_SAVE = 2,
     ID_MIRROR_VERTICALLY = 3,
-    ID_MIRROR_HORIZONTALLY = 4
+    ID_MIRROR_HORIZONTALLY = 4,
+    ID_GRAY_SCALE = 5
 };
 
 wxIMPLEMENT_APP(MyApp);
@@ -73,6 +76,8 @@ MyFrame::MyFrame()
                      "Mirror the image in the up/down direction");
     menuEdit->Append(ID_MIRROR_HORIZONTALLY, "&Mirror Horizontally...\tCtrl-Shift-M",
                      "Mirror the image in the left/right direction");
+    menuEdit->Append(ID_GRAY_SCALE, "&To Gray Scale...\tCtrl-G",
+                     "Apply L = 0.299*R + 0.587*G + 0.114*B , Ri = Gi = Bi = Li");
 
     wxMenu *menuHelp = new wxMenu;
     menuHelp->Append(wxID_ABOUT);
@@ -99,6 +104,7 @@ MyFrame::MyFrame()
     Bind(wxEVT_MENU, &MyFrame::OnSave, this, ID_SAVE);
     Bind(wxEVT_MENU, &MyFrame::OnMirrorVertically, this, ID_MIRROR_VERTICALLY);
     Bind(wxEVT_MENU, &MyFrame::OnMirrorHorizontally, this, ID_MIRROR_HORIZONTALLY);
+    Bind(wxEVT_MENU, &MyFrame::OnGrayScale, this, ID_GRAY_SCALE);
     Bind(wxEVT_MENU, &MyFrame::OnAbout, this, wxID_ABOUT);
     Bind(wxEVT_MENU, &MyFrame::OnExit, this, wxID_EXIT);
 }
@@ -173,6 +179,14 @@ void MyFrame::OnMirrorHorizontally(wxCommandEvent &event) {
     if (!image) { wxLogMessage("You must open an image first!"); return ; }
 
     mirror_horizontally(image);
+
+    ShowImage();
+}
+
+void MyFrame::OnGrayScale(wxCommandEvent &event) {
+    if (!image) { wxLogMessage("You must open an image first!"); return ; }
+
+    to_gray_scale(image);
 
     ShowImage();
 }

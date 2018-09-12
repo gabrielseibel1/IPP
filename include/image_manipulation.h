@@ -45,7 +45,7 @@ void mirror_horizontally(image_t* image);
 
 void mirror_vertically(image_t *image);
 
-void to_grayscale(image_t *image);
+void to_gray_scale(image_t *image);
 
 void quantize_tones(image_t *image, int n_tones);
 

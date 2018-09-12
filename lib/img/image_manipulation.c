@@ -213,6 +213,20 @@ void mirror_horizontally(image_t *image) {
     }
 }
 
+void to_gray_scale(image_t *image) {
+    for (int i = 0; i < image->height; ++i) {
+        for (int j = 0; j < image->width * image->channels; j += 3) {
+            int luminance = (int) (0.299 * (int) image->pixel_array[i][j] +
+                                   0.587 * (int) image->pixel_array[i][j + 1] +
+                                   0.114 * (int) image->pixel_array[i][j + 2]);
+
+            image->pixel_array[i][j] = (unsigned char) luminance;
+            image->pixel_array[i][j + 1] = (unsigned char) luminance;
+            image->pixel_array[i][j + 2] = (unsigned char) luminance;
+        }
+    }
+}
+
 
 
 
