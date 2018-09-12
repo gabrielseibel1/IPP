@@ -176,6 +176,17 @@ JSAMPLE *pixel_array_to_jsample_array(image_t *image) {
     return jsample_array;
 }
 
+unsigned char *pixel_array_to_unsigned_char_array(image_t *image) {
+    unsigned char *array = (unsigned char *) malloc((size_t) image->height * image->width * image->channels);
+    int index = 0;
+    for (int i = 0; i < image->height; ++i) {
+        for (int j = 0; j < image->width * image->channels; ++j) {
+            array[index++] = image->pixel_array[i][j];
+        }
+    }
+    return array;
+}
+
 void mirror_vertically(image_t *image) {
     for (int top = 0, bot = image->height - 1; top < image->height / 2; ++top, --bot) {
         unsigned char *swap = image->pixel_array[top];

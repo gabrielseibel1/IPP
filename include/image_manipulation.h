@@ -83,4 +83,14 @@ void my_error_exit(j_common_ptr cinfo);
  */
 JSAMPLE *pixel_array_to_jsample_array(image_t *image);
 
+/**
+ * Converts 2D pixel array to 1D unsigned char array (R,G,B,R,G,B ...).
+ * @param pixel_array The 2D pixel array to convert.
+ * @param height The height of the image.
+ * @param width The width of the image.
+ * @param components The number of channels of the image.
+ * @return Allocated and set unsigned char array.
+ */
+unsigned char *pixel_array_to_unsigned_char_array(image_t *image);
+
 #endif //FPI_ASSIGNMENT_1_IMAGE_MANIPULATION_H
