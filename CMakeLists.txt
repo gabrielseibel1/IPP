@@ -21,11 +21,21 @@ add_library(gui_lib STATIC
 )
 set_target_properties(gui_lib PROPERTIES PUBLIC_HEADER include/gui_lib.h)
 
-# Main executable
+# GUI test executable
 add_executable(fpi_assignment_1
-        src/main.c
+        src/MyApp.cpp
 )
+find_package(wxWidgets REQUIRED COMPONENTS net core base)
+include(${wxWidgets_USE_FILE})
 target_link_libraries(fpi_assignment_1
         image_manipulation_lib
-        gui_lib
+        ${wxWidgets_LIBRARIES}
+)
+
+# Img lib test executable
+add_executable(img_lib_test
+        src/main.c
+)
+target_link_libraries(img_lib_test
+        image_manipulation_lib
 )
