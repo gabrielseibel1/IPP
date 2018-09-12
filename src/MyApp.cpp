@@ -36,6 +36,8 @@ private:
 
     void OnGrayScale(wxCommandEvent &event);
 
+    void OnQuantize(wxCommandEvent &event);
+
     void OnExit(wxCommandEvent &event);
 
     void OnAbout(wxCommandEvent &event);
@@ -48,7 +50,8 @@ enum {
     ID_SAVE = 2,
     ID_MIRROR_VERTICALLY = 3,
     ID_MIRROR_HORIZONTALLY = 4,
-    ID_GRAY_SCALE = 5
+    ID_GRAY_SCALE = 5,
+    ID_QUANTIZE = 6
 };
 
 wxIMPLEMENT_APP(MyApp);
@@ -78,6 +81,8 @@ MyFrame::MyFrame()
                      "Mirror the image in the left/right direction");
     menuEdit->Append(ID_GRAY_SCALE, "&To Gray Scale...\tCtrl-G",
                      "Apply L = 0.299*R + 0.587*G + 0.114*B , Ri = Gi = Bi = Li");
+    menuEdit->Append(ID_QUANTIZE, "&Quantize...\tCtrl-Q",
+                     "Apply tone quantization");
 
     wxMenu *menuHelp = new wxMenu;
     menuHelp->Append(wxID_ABOUT);
@@ -105,6 +110,7 @@ MyFrame::MyFrame()
     Bind(wxEVT_MENU, &MyFrame::OnMirrorVertically, this, ID_MIRROR_VERTICALLY);
     Bind(wxEVT_MENU, &MyFrame::OnMirrorHorizontally, this, ID_MIRROR_HORIZONTALLY);
     Bind(wxEVT_MENU, &MyFrame::OnGrayScale, this, ID_GRAY_SCALE);
+    Bind(wxEVT_MENU, &MyFrame::OnQuantize, this, ID_QUANTIZE);
     Bind(wxEVT_MENU, &MyFrame::OnAbout, this, wxID_ABOUT);
     Bind(wxEVT_MENU, &MyFrame::OnExit, this, wxID_EXIT);
 }
@@ -189,6 +195,22 @@ void MyFrame::OnGrayScale(wxCommandEvent &event) {
     to_gray_scale(image);
 
     ShowImage();
+}
+
+void MyFrame::OnQuantize(wxCommandEvent &event) {
+    if (!image) { wxLogMessage("You must open an image first!"); return ; }
+
+    wxTextEntryDialog *TextEntryDialog = new wxTextEntryDialog(
+            this, _("Quantization - number of tones"));
+
+    if (TextEntryDialog->ShowModal() == wxID_OK) // if the user click "Open" instead of "cancel"
+    {
+        double tones;
+        TextEntryDialog->GetValue().ToDouble(&tones);
+        quantize(image, (int) tones);
+
+        ShowImage();
+    }
 }
 
 void MyFrame::ShowImage() {

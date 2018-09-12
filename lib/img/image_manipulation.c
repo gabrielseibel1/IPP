@@ -10,6 +10,8 @@
 #include <setjmp.h>
 #include <memory.h>
 
+unsigned char closest_level(unsigned char value, int n_tones);
+
 image_t *new_image() {
     return malloc(sizeof(image_t));
 }
@@ -227,6 +229,26 @@ void to_gray_scale(image_t *image) {
     }
 }
 
+void quantize(image_t *image, int n_tones) {
+    for (int i = 0; i < image->height; ++i) {
+        for (int j = 0; j < image->width * image->channels; j += 3) {
+            image->pixel_array[i][j] = closest_level(image->pixel_array[i][j], n_tones);
+            image->pixel_array[i][j + 1] = closest_level(image->pixel_array[i][j + 1], n_tones);
+            image->pixel_array[i][j + 2] = closest_level(image->pixel_array[i][j + 2], n_tones);
+        }
+    }
+}
+
+unsigned char closest_level(unsigned char value, int n_tones) {
+    float step = (float) 255 / (n_tones - 1);
+    float min = 0;
+    while (!(value >= min && value <= min + step)) {
+        min += step;
+    }
+
+    float max = (min + step >= 255) ? 255 : min + step;
+    return (unsigned char) (abs((int) max - value) < abs((int) min - value) ? max : min);
+}
 
 
 

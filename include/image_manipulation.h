@@ -47,7 +47,7 @@ void mirror_vertically(image_t *image);
 
 void to_gray_scale(image_t *image);
 
-void quantize_tones(image_t *image, int n_tones);
+void quantize(image_t *image, int n_tones);
 
 /**
  * Compresses an image buffer to a file using JPEG algorithm.
