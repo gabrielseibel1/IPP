@@ -1,2 +1,3 @@
-# fpi_assignment_1
-First assignment of Fundamentals of Image Processing at UFRGS.
+# IPP - Image Processing Playground
+Assignments of Fundamentals of Image Processing at UFRGS.
+C/C++ program that performs fundamental techniques of image processing.
