@@ -119,4 +119,9 @@ int *compute_histogram(image_t *image);
  */
 image_t *histogram_plot(int *histogram);
 
+/**
+ * Brightness adjustment by adding bias term to each pixel component
+ */
+void add_bias(image_t *image, int bias);
+
 #endif //FPI_ASSIGNMENT_1_IMAGE_MANIPULATION_H

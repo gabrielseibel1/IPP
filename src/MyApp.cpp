@@ -44,6 +44,8 @@ private:
 
     void OnShowHistogram(wxCommandEvent &event);
 
+    void OnAdjustBrightness(wxCommandEvent &event);
+
     void OnExit(wxCommandEvent &event);
 
     void OnAbout(wxCommandEvent &event);
@@ -58,7 +60,8 @@ enum {
     ID_MIRROR_HORIZONTALLY = 4,
     ID_GRAY_SCALE = 5,
     ID_QUANTIZE = 6,
-    ID_SHOW_HISTOGRAM = 7
+    ID_SHOW_HISTOGRAM = 7,
+    ID_ADJUST_BRIGHTNESS = 8
 };
 
 wxIMPLEMENT_APP(MyApp);
@@ -94,6 +97,8 @@ MyFrame::MyFrame()
     auto *menu2 = new wxMenu;
     menu2->Append(ID_SHOW_HISTOGRAM, "&Show Histogram...\tCtrl-H",
                   "Calculate and show histogram");
+    menu2->Append(ID_ADJUST_BRIGHTNESS, "&Adjust Brightness...\tCtrl-B",
+                  "Add bias term to image");
 
     auto *menuHelp = new wxMenu;
     menuHelp->Append(wxID_ABOUT);
@@ -124,6 +129,7 @@ MyFrame::MyFrame()
     Bind(wxEVT_MENU, &MyFrame::OnGrayScale, this, ID_GRAY_SCALE);
     Bind(wxEVT_MENU, &MyFrame::OnQuantize, this, ID_QUANTIZE);
     Bind(wxEVT_MENU, &MyFrame::OnShowHistogram, this, ID_SHOW_HISTOGRAM);
+    Bind(wxEVT_MENU, &MyFrame::OnAdjustBrightness, this, ID_ADJUST_BRIGHTNESS);
 
     Bind(wxEVT_MENU, &MyFrame::OnAbout, this, wxID_ABOUT);
     Bind(wxEVT_MENU, &MyFrame::OnExit, this, wxID_EXIT);
@@ -230,7 +236,7 @@ void MyFrame::OnQuantize(wxCommandEvent &event) {
     }
 
     wxTextEntryDialog *TextEntryDialog = new wxTextEntryDialog(
-            this, _("Quantization - number of tones"));
+            this, _("Number of tones"), _("Quantization"));
 
     if (TextEntryDialog->ShowModal() == wxID_OK) // if the user click "Open" instead of "cancel"
     {
@@ -287,4 +293,23 @@ void MyFrame::OnShowHistogram(wxCommandEvent &event) {
 
     frame->Show(true);
     histogramBitmap->SetBitmap(wx_bitmap);
+}
+
+void MyFrame::OnAdjustBrightness(wxCommandEvent &event) {
+    if (!image) {
+        wxLogMessage("You must open an image first!");
+        return;
+    }
+
+    wxTextEntryDialog *TextEntryDialog = new wxTextEntryDialog(
+            this, _("Summing bias term value"), _("Brightness Adjust"));
+
+    if (TextEntryDialog->ShowModal() == wxID_OK) // if the user click "Open" instead of "cancel"
+    {
+        double bias;
+        TextEntryDialog->GetValue().ToDouble(&bias);
+        add_bias(image, (int) bias);
+
+        ShowImage();
+    }
 }
