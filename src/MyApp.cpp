@@ -50,6 +50,8 @@ private:
 
     void OnNegative(wxCommandEvent &event);
 
+    void OnEqualizeHistogram(wxCommandEvent &event);
+
     void OnExit(wxCommandEvent &event);
 
     void OnAbout(wxCommandEvent &event);
@@ -67,7 +69,8 @@ enum {
     ID_SHOW_HISTOGRAM = 7,
     ID_ADJUST_BRIGHTNESS = 8,
     ID_ADJUST_CONTRAST = 9,
-    ID_NEGATIVE = 10
+    ID_NEGATIVE = 10,
+    ID_EQUALIZE_HISTOGRAM = 11
 };
 
 wxIMPLEMENT_APP(MyApp);
@@ -109,6 +112,8 @@ MyFrame::MyFrame()
                   "Multiply gain term to image");
     menu2->Append(ID_NEGATIVE, "&Negative...\tCtrl-N",
                   "Make image it's negative (p' = 255 - p)");
+    menu2->Append(ID_EQUALIZE_HISTOGRAM, "&Equalize Histogram...\tCtrl-E",
+                  "Attempts to optimize contrast with histogram equalization");
 
     auto *menuHelp = new wxMenu;
     menuHelp->Append(wxID_ABOUT);
@@ -142,6 +147,7 @@ MyFrame::MyFrame()
     Bind(wxEVT_MENU, &MyFrame::OnAdjustBrightness, this, ID_ADJUST_BRIGHTNESS);
     Bind(wxEVT_MENU, &MyFrame::OnAdjustContrast, this, ID_ADJUST_CONTRAST);
     Bind(wxEVT_MENU, &MyFrame::OnNegative, this, ID_NEGATIVE);
+    Bind(wxEVT_MENU, &MyFrame::OnEqualizeHistogram, this, ID_EQUALIZE_HISTOGRAM);
 
     Bind(wxEVT_MENU, &MyFrame::OnAbout, this, wxID_ABOUT);
     Bind(wxEVT_MENU, &MyFrame::OnExit, this, wxID_EXIT);
@@ -364,6 +370,17 @@ void MyFrame::OnNegative(wxCommandEvent &event) {
     }
 
     negative(image);
+
+    ShowImage();
+}
+
+void MyFrame::OnEqualizeHistogram(wxCommandEvent &event) {
+    if (!image) {
+        wxLogMessage("You must open an image first!");
+        return;
+    }
+
+    equalize_histogram(image);
 
     ShowImage();
 }
