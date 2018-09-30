@@ -6,6 +6,8 @@
 
 #include <wx/wx.h>
 
+#define __GXX_ABI_VERSION 1002
+
 extern "C" {
 #include <image_manipulation.h>
 };
@@ -24,6 +26,8 @@ public:
 private:
     image_t *image;
 
+    int histogramFrames = 0;
+
     wxStaticBitmap *staticBitmap;
 
     void OnOpen(wxCommandEvent &event);
@@ -38,6 +42,8 @@ private:
 
     void OnQuantize(wxCommandEvent &event);
 
+    void OnShowHistogram(wxCommandEvent &event);
+
     void OnExit(wxCommandEvent &event);
 
     void OnAbout(wxCommandEvent &event);
@@ -51,7 +57,8 @@ enum {
     ID_MIRROR_VERTICALLY = 3,
     ID_MIRROR_HORIZONTALLY = 4,
     ID_GRAY_SCALE = 5,
-    ID_QUANTIZE = 6
+    ID_QUANTIZE = 6,
+    ID_SHOW_HISTOGRAM = 7
 };
 
 wxIMPLEMENT_APP(MyApp);
@@ -63,10 +70,10 @@ bool MyApp::OnInit() {
 }
 
 MyFrame::MyFrame()
-        : wxFrame(NULL, wxID_ANY, "FPI Assignment 1", wxPoint(-1, -1), wxSize(500, 500)) {
+        : wxFrame(NULL, wxID_ANY, "FPI Assignment 1", wxPoint(-1, -1), wxSize(600, 600)) {
     image = nullptr;
 
-    wxMenu *menuFile = new wxMenu;
+    auto *menuFile = new wxMenu;
     menuFile->Append(ID_OPEN, "&Open...\tCtrl-O",
                      "Open an image from internal storage");
     menuFile->Append(ID_SAVE, "&Save...\tCtrl-S",
@@ -74,32 +81,37 @@ MyFrame::MyFrame()
     menuFile->AppendSeparator();
     menuFile->Append(wxID_EXIT);
 
-    wxMenu *menuEdit = new wxMenu;
-    menuEdit->Append(ID_MIRROR_VERTICALLY, "&Mirror Vertically...\tCtrl-M",
-                     "Mirror the image in the up/down direction");
-    menuEdit->Append(ID_MIRROR_HORIZONTALLY, "&Mirror Horizontally...\tCtrl-Shift-M",
-                     "Mirror the image in the left/right direction");
-    menuEdit->Append(ID_GRAY_SCALE, "&To Gray Scale...\tCtrl-G",
-                     "Apply L = 0.299*R + 0.587*G + 0.114*B , Ri = Gi = Bi = Li");
-    menuEdit->Append(ID_QUANTIZE, "&Quantize...\tCtrl-Q",
-                     "Apply tone quantization");
+    auto *menu1 = new wxMenu;
+    menu1->Append(ID_MIRROR_VERTICALLY, "&Mirror Vertically...\tCtrl-M",
+                  "Mirror the image in the up/down direction");
+    menu1->Append(ID_MIRROR_HORIZONTALLY, "&Mirror Horizontally...\tCtrl-Shift-M",
+                  "Mirror the image in the left/right direction");
+    menu1->Append(ID_GRAY_SCALE, "&To Gray Scale...\tCtrl-G",
+                  "Apply L = 0.299*R + 0.587*G + 0.114*B , Ri = Gi = Bi = Li");
+    menu1->Append(ID_QUANTIZE, "&Quantize...\tCtrl-Q",
+                  "Apply tone quantization");
 
-    wxMenu *menuHelp = new wxMenu;
+    auto *menu2 = new wxMenu;
+    menu2->Append(ID_SHOW_HISTOGRAM, "&Show Histogram...\tCtrl-H",
+                  "Calculate and show histogram");
+
+    auto *menuHelp = new wxMenu;
     menuHelp->Append(wxID_ABOUT);
 
-    wxMenuBar *menuBar = new wxMenuBar;
+    auto *menuBar = new wxMenuBar;
     menuBar->Append(menuFile, "&File");
-    menuBar->Append(menuEdit, "&Edit");
+    menuBar->Append(menu1, "&Assignment 1");
+    menuBar->Append(menu2, "&Assignment 2");
     menuBar->Append(menuHelp, "&Help");
     SetMenuBar(menuBar);
     CreateStatusBar();
-    SetStatusText("Welcome to FPI Assignment 1!");
+    SetStatusText("Welcome to Image Processing Playground!");
 
     wxPanel *panel = new wxPanel(this, -1);
-    wxBoxSizer *hbox = new wxBoxSizer(wxHORIZONTAL);
+    auto *hbox = new wxBoxSizer(wxHORIZONTAL);
 
     staticBitmap = new wxStaticBitmap(this, wxID_STATIC, wxNullBitmap, wxDefaultPosition,
-                                                          wxSize(200, 200));
+                                      wxSize(200, 200));
 
     hbox->Add(staticBitmap, 1, wxALL | wxEXPAND, 15);
     panel->SetSizer(hbox);
@@ -111,6 +123,8 @@ MyFrame::MyFrame()
     Bind(wxEVT_MENU, &MyFrame::OnMirrorHorizontally, this, ID_MIRROR_HORIZONTALLY);
     Bind(wxEVT_MENU, &MyFrame::OnGrayScale, this, ID_GRAY_SCALE);
     Bind(wxEVT_MENU, &MyFrame::OnQuantize, this, ID_QUANTIZE);
+    Bind(wxEVT_MENU, &MyFrame::OnShowHistogram, this, ID_SHOW_HISTOGRAM);
+
     Bind(wxEVT_MENU, &MyFrame::OnAbout, this, wxID_ABOUT);
     Bind(wxEVT_MENU, &MyFrame::OnExit, this, wxID_EXIT);
 }
@@ -152,7 +166,10 @@ void MyFrame::OnOpen(wxCommandEvent &event) {
 }
 
 void MyFrame::OnSave(wxCommandEvent &event) {
-    if (!image) { wxLogMessage("You must open an image first!"); return ; }
+    if (!image) {
+        wxLogMessage("You must open an image first!");
+        return;
+    }
 
     wxFileDialog *SaveDialog = new wxFileDialog(
             this, _("Choose where to save the file"), wxEmptyString, wxEmptyString,
@@ -174,7 +191,10 @@ void MyFrame::OnSave(wxCommandEvent &event) {
 }
 
 void MyFrame::OnMirrorVertically(wxCommandEvent &event) {
-    if (!image) { wxLogMessage("You must open an image first!"); return ; }
+    if (!image) {
+        wxLogMessage("You must open an image first!");
+        return;
+    }
 
     mirror_vertically(image);
 
@@ -182,7 +202,10 @@ void MyFrame::OnMirrorVertically(wxCommandEvent &event) {
 }
 
 void MyFrame::OnMirrorHorizontally(wxCommandEvent &event) {
-    if (!image) { wxLogMessage("You must open an image first!"); return ; }
+    if (!image) {
+        wxLogMessage("You must open an image first!");
+        return;
+    }
 
     mirror_horizontally(image);
 
@@ -190,15 +213,21 @@ void MyFrame::OnMirrorHorizontally(wxCommandEvent &event) {
 }
 
 void MyFrame::OnGrayScale(wxCommandEvent &event) {
-    if (!image) { wxLogMessage("You must open an image first!"); return ; }
+    if (!image) {
+        wxLogMessage("You must open an image first!");
+        return;
+    }
 
-    to_gray_scale(image);
+    rgb_to_luminance(image);
 
     ShowImage();
 }
 
 void MyFrame::OnQuantize(wxCommandEvent &event) {
-    if (!image) { wxLogMessage("You must open an image first!"); return ; }
+    if (!image) {
+        wxLogMessage("You must open an image first!");
+        return;
+    }
 
     wxTextEntryDialog *TextEntryDialog = new wxTextEntryDialog(
             this, _("Quantization - number of tones"));
@@ -214,11 +243,48 @@ void MyFrame::OnQuantize(wxCommandEvent &event) {
 }
 
 void MyFrame::ShowImage() {
-    if (!image) { wxLogMessage("You must open an image first!"); return ; }
+    if (!image) {
+        wxLogMessage("You must open an image first!");
+        return;
+    }
 
-    wxImage wx_image(image->width, image->height, pixel_array_to_unsigned_char_array(image), true);
+    image_t *displayable = get_displayable(image);
+    wxImage wx_image(displayable->width, displayable->height, pixel_array_to_unsigned_char_array(displayable), true);
     wxBitmap wx_bitmap(wx_image);
 
     // Update later with your bitmap
     staticBitmap->SetBitmap(wx_bitmap);
+}
+
+void MyFrame::OnShowHistogram(wxCommandEvent &event) {
+    if (!image) {
+        wxLogMessage("You must open an image first!");
+        return;
+    }
+
+    wxFrame *frame = new wxFrame(nullptr, histogramFrames++, "Histogram", wxPoint(50, 50),
+                                 wxSize(static_cast<int>(HISTOGRAM_SIZE * 1.2), static_cast<int>(HISTOGRAM_SIZE * 1.2)));
+    wxPanel *panel = new wxPanel(frame);
+    auto *hbox = new wxBoxSizer(wxHORIZONTAL);
+
+    auto *histogramBitmap = new wxStaticBitmap(frame, wxID_STATIC, wxNullBitmap, wxDefaultPosition,
+                                               wxSize(HISTOGRAM_SIZE, HISTOGRAM_SIZE));
+
+    hbox->Add(histogramBitmap, 1, wxEXPAND);
+    frame->SetSizer(hbox);
+
+    image_t *histogram = histogram_plot(compute_histogram(image));
+
+    if (!histogram) {
+        wxLogMessage("Error generating histogram");
+        return;
+    }
+
+    image_t *displayable = get_displayable(histogram);
+    wxImage wx_image(displayable->width, displayable->height, pixel_array_to_unsigned_char_array(displayable), true);
+    wxBitmap wx_bitmap(wx_image);
+
+
+    frame->Show(true);
+    histogramBitmap->SetBitmap(wx_bitmap);
 }

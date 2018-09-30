@@ -8,12 +8,38 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <setjmp.h>
+#include <math.h>
 #include <memory.h>
 
 unsigned char closest_level(unsigned char value, int n_tones);
 
 image_t *new_image() {
     return malloc(sizeof(image_t));
+}
+
+image_t *copy_image(image_t *original) {
+    image_t *copy = new_image();
+    copy->filename = strdup(original->filename);
+    copy->width = original->width;
+    copy->height = original->height;
+    copy->colorspace = original->colorspace;
+    copy->channels = original->channels;
+    copy->last_operation = original->last_operation;
+
+    copy->pixels = new_unsigned_char_matrix(copy->height, copy->width * copy->channels);
+    for (int row = 0; row < copy->height; ++row) {
+        memcpy(copy->pixels[row], original->pixels[row], sizeof(unsigned char) * copy->width * copy->channels);
+    }
+
+    return copy;
+}
+
+int *new_histogram() {
+    int *histogram = malloc(HISTOGRAM_SIZE * sizeof(int));
+    for (int i = 0; i < HISTOGRAM_SIZE; ++i) {
+        histogram[i] = 0;
+    }
+    return histogram;
 }
 
 void jpeg_compress(image_t *image, char *output_filename) {
@@ -54,8 +80,8 @@ void jpeg_compress(image_t *image, char *output_filename) {
     // Set parameters for compression, including image size & colorspace
     cinfo.image_width = (JDIMENSION) image->width;
     cinfo.image_height = (JDIMENSION) image->height;
-    cinfo.input_components = 3;
-    cinfo.in_color_space = JCS_RGB;
+    cinfo.input_components = image->channels;
+    cinfo.in_color_space = image->colorspace;
     jpeg_set_defaults(&cinfo);
     // TODO account for quantization with jpeg_set_quality(&cinfo, quality, TRUE /* limit to baseline-JPEG values */);
 
@@ -128,22 +154,20 @@ image_t *jpeg_decompress(char *input_filename) {
     image->height = cinfo.output_height;
     image->width = cinfo.output_width;
     image->channels = cinfo.output_components;
+    image->colorspace = cinfo.out_color_space;
 
     // Calculate physical/array size of a line
     row_stride = cinfo.output_width * cinfo.output_components;
     // Make a one-row-high sample array that will go away when done with image
     line_buffer = (*cinfo.mem->alloc_sarray)((j_common_ptr) &cinfo, JPOOL_IMAGE, (JDIMENSION) row_stride, 1);
 
-    // Build 2D array to hold RGB values of all pixels
-    image->pixel_array = (unsigned char **) malloc(cinfo.output_height * sizeof(unsigned char *));
-    for (int i = 0; i < cinfo.output_height; ++i) {
-        image->pixel_array[i] = (unsigned char *) malloc(row_stride * sizeof(unsigned char));
-    }
+    // Build 2D array to hold RGB (or luminance) values of all pixels
+    image->pixels = new_unsigned_char_matrix(cinfo.output_height, row_stride);
 
     // Decompress each line from the input file to buffer and copy to 2D array
     while (cinfo.output_scanline < cinfo.output_height) {
         (void) jpeg_read_scanlines(&cinfo, line_buffer, 1);
-        memcpy(image->pixel_array[cinfo.output_scanline - 1], line_buffer[0], row_stride * sizeof(unsigned char));
+        memcpy(image->pixels[cinfo.output_scanline - 1], line_buffer[0], row_stride * sizeof(unsigned char));
     }
 
     // Release JPEG decompression object
@@ -154,6 +178,14 @@ image_t *jpeg_decompress(char *input_filename) {
 
     image->last_operation = DECOMPRESSION_SUCCESS;
     return image;
+}
+
+unsigned char **new_unsigned_char_matrix(int rows, int cols) {
+    unsigned char **pixel_array = (unsigned char **) malloc(rows * sizeof(unsigned char *));
+    for (int i = 0; i < rows; ++i) {
+        pixel_array[i] = (unsigned char *) malloc(cols * sizeof(unsigned char));
+    }
+    return pixel_array;
 }
 
 void my_error_exit(j_common_ptr cinfo) {
@@ -172,7 +204,7 @@ JSAMPLE *pixel_array_to_jsample_array(image_t *image) {
     int jsample_index = 0;
     for (int i = 0; i < image->height; ++i) {
         for (int j = 0; j < image->width * image->channels; ++j) {
-            jsample_array[jsample_index++] = image->pixel_array[i][j];
+            jsample_array[jsample_index++] = (JSAMPLE) image->pixels[i][j];
         }
     }
     return jsample_array;
@@ -183,7 +215,7 @@ unsigned char *pixel_array_to_unsigned_char_array(image_t *image) {
     int index = 0;
     for (int i = 0; i < image->height; ++i) {
         for (int j = 0; j < image->width * image->channels; ++j) {
-            array[index++] = image->pixel_array[i][j];
+            array[index++] = image->pixels[i][j];
         }
     }
     return array;
@@ -191,9 +223,9 @@ unsigned char *pixel_array_to_unsigned_char_array(image_t *image) {
 
 void mirror_vertically(image_t *image) {
     for (int top = 0, bot = image->height - 1; top < image->height / 2; ++top, --bot) {
-        unsigned char *swap = image->pixel_array[top];
-        image->pixel_array[top] = image->pixel_array[bot];
-        image->pixel_array[bot] = swap;
+        unsigned char *swap = image->pixels[top];
+        image->pixels[top] = image->pixels[bot];
+        image->pixels[bot] = swap;
     }
 }
 
@@ -207,34 +239,79 @@ void mirror_horizontally(image_t *image) {
             // Swap all channels
             unsigned char *swap = malloc(sizeof(unsigned char) * image->channels);
             for (int c = 0; c < image->channels; ++c) {
-                swap[c] = image->pixel_array[i][left + c];
-                image->pixel_array[i][left + c] = image->pixel_array[i][right + c];
-                image->pixel_array[i][right + c] = swap[c];
+                swap[c] = image->pixels[i][left + c];
+                image->pixels[i][left + c] = image->pixels[i][right + c];
+                image->pixels[i][right + c] = swap[c];
             }
         }
     }
 }
 
-void to_gray_scale(image_t *image) {
-    for (int i = 0; i < image->height; ++i) {
-        for (int j = 0; j < image->width * image->channels; j += 3) {
-            int luminance = (int) (0.299 * (int) image->pixel_array[i][j] +
-                                   0.587 * (int) image->pixel_array[i][j + 1] +
-                                   0.114 * (int) image->pixel_array[i][j + 2]);
+void free_pixels(image_t *image) {
+    for (int row = 0; row < image->height; ++row) {
+        free(image->pixels[row]);
+    }
+    free(image->pixels);
+}
 
-            image->pixel_array[i][j] = (unsigned char) luminance;
-            image->pixel_array[i][j + 1] = (unsigned char) luminance;
-            image->pixel_array[i][j + 2] = (unsigned char) luminance;
+image_t *get_displayable(image_t *image) {
+    if (image->colorspace == JCS_RGB) return image;
+
+    image_t *displayable = copy_image(image);
+    luminance_to_rgb(displayable);
+
+    return displayable;
+}
+
+void rgb_to_luminance(image_t *image) {
+    if (image->colorspace == JCS_GRAYSCALE) {
+        printf("Already grayscale!\n");
+        return;
+    }
+
+    unsigned char **new_pixels = new_unsigned_char_matrix(image->height, image->width);
+    for (int i = 0; i < image->height; ++i) {
+        for (int j = 0; j < image->width * image->channels; j += image->channels) {
+            int luminance = (int) (0.299 * (int) image->pixels[i][j] +
+                                   0.587 * (int) image->pixels[i][j + 1] +
+                                   0.114 * (int) image->pixels[i][j + 2]);
+
+            new_pixels[i][j / 3] = (unsigned char) luminance;
         }
     }
+
+    image->colorspace = JCS_GRAYSCALE;
+    image->channels = 1;
+
+    free_pixels(image);
+    image->pixels = new_pixels;
+}
+
+void luminance_to_rgb(image_t *image) {
+    if (image->colorspace == JCS_RGB) return;
+
+    unsigned char **new_pixels = new_unsigned_char_matrix(image->height, image->width * 3);
+    for (int i = 0; i < image->height; ++i) {
+        for (int j = 0; j < image->width; ++j) {
+            for (int c = 0; c < 3; ++c) {
+                new_pixels[i][j * 3 + c] = image->pixels[i][j];
+            }
+        }
+    }
+
+    image->colorspace = JCS_RGB;
+    image->channels = 3;
+
+    free_pixels(image);
+    image->pixels = new_pixels;
 }
 
 void quantize(image_t *image, int n_tones) {
     for (int i = 0; i < image->height; ++i) {
-        for (int j = 0; j < image->width * image->channels; j += 3) {
-            image->pixel_array[i][j] = closest_level(image->pixel_array[i][j], n_tones);
-            image->pixel_array[i][j + 1] = closest_level(image->pixel_array[i][j + 1], n_tones);
-            image->pixel_array[i][j + 2] = closest_level(image->pixel_array[i][j + 2], n_tones);
+        for (int j = 0; j < image->width * image->channels; j += image->channels) {
+            for (int c = 0; c < image->channels; ++c) {
+                image->pixels[i][j + c] = closest_level(image->pixels[i][j + c], n_tones);
+            }
         }
     }
 }
@@ -248,6 +325,57 @@ unsigned char closest_level(unsigned char value, int n_tones) {
 
     float max = (min + step >= 255) ? 255 : min + step;
     return (unsigned char) (abs((int) max - value) < abs((int) min - value) ? max : min);
+}
+
+int *compute_histogram(image_t *image) {
+    int *histogram = new_histogram();
+
+    image_t *gs_image = image;
+    if (image->colorspace == JCS_RGB) {
+        gs_image = copy_image(image);
+        rgb_to_luminance(gs_image);
+    }
+
+    for (int row = 0; row < gs_image->height; ++row) {
+        for (int col = 0; col < gs_image->width; ++col) {
+            ++histogram[gs_image->pixels[row][col]];
+        }
+    }
+
+    return histogram;
+}
+
+image_t *histogram_plot(int *histogram) {
+    image_t *plot = new_image();
+    plot->height = HISTOGRAM_SIZE;
+    plot->width = HISTOGRAM_SIZE;
+    plot->channels = 1;
+    plot->colorspace = JCS_GRAYSCALE;
+    plot->pixels = new_unsigned_char_matrix(plot->height, plot->width);
+
+    int histogram_max_value = 0;
+    for (int i = 0; i < HISTOGRAM_SIZE; ++i) {
+        if (histogram[i] > histogram_max_value) {
+            histogram_max_value = histogram[i];
+        }
+    }
+
+    int normalized_histogram[HISTOGRAM_SIZE];
+    float scale_factor = (float) (HISTOGRAM_SIZE - 1) / histogram_max_value;
+    for (int col = 0; col < HISTOGRAM_SIZE; ++col) {
+        normalized_histogram[col] = (int) (scale_factor * histogram[col]);
+
+        //paint column accordingly
+        int bottom = plot->height - 1;
+        for (int row = bottom; row > bottom - normalized_histogram[col]; --row) {
+            plot->pixels[row][col] = 0; //black
+        }
+        for (int row = bottom - normalized_histogram[col]; row >= 0; --row) {
+            plot->pixels[row][col] = 255; //white
+        }
+    }
+
+    return plot;
 }
 
 
