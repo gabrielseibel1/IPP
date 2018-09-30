@@ -129,4 +129,9 @@ void add_bias(image_t *image, double bias);
  */
 void multiply_gain(image_t *image, double bias);
 
+/**
+ * Takes the negative of the image by making every pixel component value' = 255 - value
+ */
+void negative(image_t *image);
+
 #endif //FPI_ASSIGNMENT_1_IMAGE_MANIPULATION_H

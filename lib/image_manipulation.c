@@ -414,5 +414,15 @@ void multiply_gain(image_t *image, double gain) {
     }
 }
 
+void negative(image_t *image) {
+    for (int h = 0; h < image->height; ++h) {
+        for (int w = 0; w < image->width * image->channels; w += image->channels) {
+            for (int c = 0; c < image->channels; ++c) {
+                image->pixels[h][w + c] = (unsigned char) 255 - image->pixels[h][w + c];
+            }
+        }
+    }
+}
+
 
 
