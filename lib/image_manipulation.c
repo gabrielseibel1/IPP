@@ -378,5 +378,24 @@ image_t *histogram_plot(int *histogram) {
     return plot;
 }
 
+void add_bias(image_t *image, int bias) {
+    for (int h = 0; h < image->height; ++h) {
+        for (int w = 0; w < image->width * image->channels; w += image->channels) {
+            for (int c = 0; c < image->channels; ++c) {
+                int sum = (int) image->pixels[h][w + c] + bias;
+
+                //verify saturation
+                if (sum > 255) {
+                    image->pixels[h][w + c] = 255;
+                } else if (sum < 0) {
+                    image->pixels[h][w + c] = 0;
+                } else {
+                    image->pixels[h][w + c] += bias;
+                }
+            }
+        }
+    }
+}
+
 
 
