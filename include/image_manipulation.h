@@ -134,4 +134,9 @@ void multiply_gain(image_t *image, double bias);
  */
 void negative(image_t *image);
 
+/**
+ * Attempts to produce optimal contrast by equalizing the histogram of the image
+ */
+void equalize_histogram(image_t *image);
+
 #endif //FPI_ASSIGNMENT_1_IMAGE_MANIPULATION_H

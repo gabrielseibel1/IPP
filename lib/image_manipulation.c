@@ -13,6 +13,8 @@
 
 unsigned char closest_level(unsigned char value, int n_tones);
 
+int pixels_in_histogram(const int *hist);
+
 image_t *new_image() {
     return malloc(sizeof(image_t));
 }
@@ -423,6 +425,42 @@ void negative(image_t *image) {
         }
     }
 }
+
+void equalize_histogram(image_t *image) {
+    image_t *gs_image = image;
+    if (image->colorspace == JCS_RGB) {
+        gs_image = copy_image(image);
+        rgb_to_luminance(gs_image);
+    }
+
+    int *hist = compute_histogram(gs_image);
+    int *hist_cum = new_histogram();
+    int pixels_in_hist = pixels_in_histogram(hist);
+
+    double scale_factor = (double) 255 / pixels_in_hist;
+
+    hist_cum[0] = (int) (scale_factor * hist[0]);
+    for (int i = 1; i < HISTOGRAM_SIZE; ++i) {
+        hist_cum[i] = (int) (hist_cum[i - 1] + scale_factor * hist[i]);
+    }
+
+    for (int h = 0; h < image->height; ++h) {
+        for (int w = 0; w < image->width * image->channels; w += image->channels) {
+            for (int c = 0; c < image->channels; ++c) {
+                image->pixels[h][w + c] = (unsigned char) hist_cum[image->pixels[h][w + c]];
+            }
+        }
+    }
+}
+
+int pixels_in_histogram(const int *hist) {
+    int pixels_in_hist = 0;
+    for (int i = 0; i < HISTOGRAM_SIZE; ++i) {
+        pixels_in_hist += hist[i];
+    }
+    return pixels_in_hist;
+}
+
 
 
 
