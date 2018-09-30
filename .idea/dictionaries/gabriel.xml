@@ -4,6 +4,8 @@
       <w>cinfo</w>
       <w>colorspace</w>
       <w>fopen</w>
+      <w>grayscale</w>
+      <w>hbox</w>
       <w>jerr</w>
       <w>jsample</w>
       <w>setjmp</w>

@@ -11,6 +11,8 @@
 #ifndef FPI_ASSIGNMENT_1_IMAGE_MANIPULATION_H
 #define FPI_ASSIGNMENT_1_IMAGE_MANIPULATION_H
 
+#define HISTOGRAM_SIZE 256
+
 enum result {
     COMPRESSION_SUCCESS,
     COMPRESSION_FAILURE,
@@ -30,8 +32,9 @@ typedef struct image_struct {
     char *filename;
     int height;
     int width;
+    J_COLOR_SPACE colorspace;
     int channels;
-    unsigned char **pixel_array;
+    unsigned char **pixels;
     enum result last_operation;
 } image_t;
 
@@ -41,13 +44,15 @@ typedef struct image_struct {
  */
 image_t *new_image();
 
-void mirror_horizontally(image_t* image);
+unsigned char **new_unsigned_char_matrix(int rows, int cols);
 
-void mirror_vertically(image_t *image);
+/**
+ * Initializes a histogram (256-elements int vector) in heap memory.
+ * @return Pointer to initialized histogram_t.
+ */
+int *new_histogram();
 
-void to_gray_scale(image_t *image);
-
-void quantize(image_t *image, int n_tones);
+image_t *copy_image(image_t *original);
 
 /**
  * Compresses an image buffer to a file using JPEG algorithm.
@@ -92,5 +97,26 @@ JSAMPLE *pixel_array_to_jsample_array(image_t *image);
  * @return Allocated and set unsigned char array.
  */
 unsigned char *pixel_array_to_unsigned_char_array(image_t *image);
+
+void mirror_horizontally(image_t* image);
+
+void mirror_vertically(image_t *image);
+
+void free_pixels(image_t *image);
+
+image_t *get_displayable(image_t *image);
+
+void rgb_to_luminance(image_t *image);
+
+void luminance_to_rgb(image_t *image);
+
+void quantize(image_t *image, int n_tones);
+
+int *compute_histogram(image_t *image);
+
+/**
+ * Build and returns 256x256 image representing the histogram
+ */
+image_t *histogram_plot(int *histogram);
 
 #endif //FPI_ASSIGNMENT_1_IMAGE_MANIPULATION_H
