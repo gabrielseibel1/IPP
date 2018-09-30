@@ -46,6 +46,8 @@ private:
 
     void OnAdjustBrightness(wxCommandEvent &event);
 
+    void OnAdjustContrast(wxCommandEvent &event);
+
     void OnExit(wxCommandEvent &event);
 
     void OnAbout(wxCommandEvent &event);
@@ -61,7 +63,8 @@ enum {
     ID_GRAY_SCALE = 5,
     ID_QUANTIZE = 6,
     ID_SHOW_HISTOGRAM = 7,
-    ID_ADJUST_BRIGHTNESS = 8
+    ID_ADJUST_BRIGHTNESS = 8,
+    ID_ADJUST_CONTRAST = 9,
 };
 
 wxIMPLEMENT_APP(MyApp);
@@ -99,6 +102,8 @@ MyFrame::MyFrame()
                   "Calculate and show histogram");
     menu2->Append(ID_ADJUST_BRIGHTNESS, "&Adjust Brightness...\tCtrl-B",
                   "Add bias term to image");
+    menu2->Append(ID_ADJUST_CONTRAST, "&Adjust Contrast...\tCtrl-C",
+                  "Multiply gain term to image");
 
     auto *menuHelp = new wxMenu;
     menuHelp->Append(wxID_ABOUT);
@@ -130,6 +135,7 @@ MyFrame::MyFrame()
     Bind(wxEVT_MENU, &MyFrame::OnQuantize, this, ID_QUANTIZE);
     Bind(wxEVT_MENU, &MyFrame::OnShowHistogram, this, ID_SHOW_HISTOGRAM);
     Bind(wxEVT_MENU, &MyFrame::OnAdjustBrightness, this, ID_ADJUST_BRIGHTNESS);
+    Bind(wxEVT_MENU, &MyFrame::OnAdjustContrast, this, ID_ADJUST_CONTRAST);
 
     Bind(wxEVT_MENU, &MyFrame::OnAbout, this, wxID_ABOUT);
     Bind(wxEVT_MENU, &MyFrame::OnExit, this, wxID_EXIT);
@@ -308,7 +314,38 @@ void MyFrame::OnAdjustBrightness(wxCommandEvent &event) {
     {
         double bias;
         TextEntryDialog->GetValue().ToDouble(&bias);
-        add_bias(image, (int) bias);
+
+        if (bias >= -255 && bias <= 255) {
+            add_bias(image, bias);
+        } else {
+            wxLogMessage("Enter a value in the range [0,255]");
+            return;
+        }
+
+        ShowImage();
+    }
+}
+
+void MyFrame::OnAdjustContrast(wxCommandEvent &event) {
+    if (!image) {
+        wxLogMessage("You must open an image first!");
+        return;
+    }
+
+    wxTextEntryDialog *TextEntryDialog = new wxTextEntryDialog(
+            this, _("Multiplying gain term value"), _("Contrast Adjustment"));
+
+    if (TextEntryDialog->ShowModal() == wxID_OK) // if the user click "Open" instead of "cancel"
+    {
+        double gain;
+        TextEntryDialog->GetValue().ToDouble(&gain);
+
+        if (gain > 0 && gain <= 255) {
+            multiply_gain(image, gain);
+        } else {
+            wxLogMessage("Enter a value in the range (0,255]");
+            return;
+        }
 
         ShowImage();
     }
