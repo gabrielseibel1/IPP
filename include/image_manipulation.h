@@ -114,6 +114,8 @@ void quantize(image_t *image, int n_tones);
 
 int *compute_histogram(image_t *image);
 
+int *compute_norm_cum_histogram(image_t *image);
+
 /**
  * Build and returns 256x256 image representing the histogram
  */
@@ -138,5 +140,10 @@ void negative(image_t *image);
  * Attempts to produce optimal contrast by equalizing the histogram of the image
  */
 void equalize_histogram(image_t *image);
+
+/**
+ * Make source's histogram match target's
+ */
+void match_histogram(image_t *source, image_t *target);
 
 #endif //FPI_ASSIGNMENT_1_IMAGE_MANIPULATION_H

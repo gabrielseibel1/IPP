@@ -15,13 +15,19 @@ unsigned char closest_level(unsigned char value, int n_tones);
 
 int pixels_in_histogram(const int *hist);
 
+int *compute_norm_cum_histogram(image_t *image);
+
+int get_closest(int candidate1, int candidate2, int goal);
+
+int *compute_histogram_matching(const int *hist_cum_source, const int *hist_cum_target);
+
 image_t *new_image() {
     return malloc(sizeof(image_t));
 }
 
 image_t *copy_image(image_t *original) {
     image_t *copy = new_image();
-    copy->filename = strdup(original->filename);
+    if (original->filename) copy->filename = strdup(original->filename);
     copy->width = original->width;
     copy->height = original->height;
     copy->colorspace = original->colorspace;
@@ -427,6 +433,18 @@ void negative(image_t *image) {
 }
 
 void equalize_histogram(image_t *image) {
+    int *hist_cum = compute_norm_cum_histogram(image);
+
+    for (int h = 0; h < image->height; ++h) {
+        for (int w = 0; w < image->width * image->channels; w += image->channels) {
+            for (int c = 0; c < image->channels; ++c) {
+                image->pixels[h][w + c] = (unsigned char) hist_cum[image->pixels[h][w + c]];
+            }
+        }
+    }
+}
+
+int *compute_norm_cum_histogram(image_t *image) {
     image_t *gs_image = image;
     if (image->colorspace == JCS_RGB) {
         gs_image = copy_image(image);
@@ -443,14 +461,7 @@ void equalize_histogram(image_t *image) {
     for (int i = 1; i < HISTOGRAM_SIZE; ++i) {
         hist_cum[i] = (int) (hist_cum[i - 1] + scale_factor * hist[i]);
     }
-
-    for (int h = 0; h < image->height; ++h) {
-        for (int w = 0; w < image->width * image->channels; w += image->channels) {
-            for (int c = 0; c < image->channels; ++c) {
-                image->pixels[h][w + c] = (unsigned char) hist_cum[image->pixels[h][w + c]];
-            }
-        }
-    }
+    return hist_cum;
 }
 
 int pixels_in_histogram(const int *hist) {
@@ -461,6 +472,54 @@ int pixels_in_histogram(const int *hist) {
     return pixels_in_hist;
 }
 
+/**
+ * For each tone, find the tone that has the closest number of corresponding pixels
+ * @param tone the tone to have its pixel count mapped
+ * @param hist_cum_source source cumulative histogram
+ * @param hist_cum_target target cumulative histogram
+ * @return the tone that has the closest pixel count in target histogram
+ */
+int find_target_tone_closest_to(int tone, const int *hist_cum_source, const int *hist_cum_target) {
+    int ideal_pixel_count = hist_cum_source[tone];
+    int tone_for_closest_pixel_count = 0;
 
+    for (int i = 0; i < HISTOGRAM_SIZE; ++i) {
+        if (abs(ideal_pixel_count - hist_cum_target[i]) <
+            abs(ideal_pixel_count - hist_cum_target[tone_for_closest_pixel_count])) {
+            tone_for_closest_pixel_count = i;
+        }
+    }
 
+    return tone_for_closest_pixel_count;
+}
 
+/**
+ * Builds a histogram that makes that makes source match target
+ * @param hist_cum_source source cumulative histogram
+ * @param hist_cum_target target cumulative histogram
+ * @return
+ */
+int *compute_histogram_matching(const int *hist_cum_source, const int *hist_cum_target) {
+    int *histogram_matching = new_histogram();
+    for (int tone = 0; tone < HISTOGRAM_SIZE; ++tone) {
+        histogram_matching[tone] = find_target_tone_closest_to(tone, hist_cum_source, hist_cum_target);
+    }
+    return histogram_matching;
+}
+
+void match_histogram(image_t *source, image_t *target) {
+    //assert images are in grayscale
+    rgb_to_luminance(source);
+    rgb_to_luminance(target);
+
+    int *hist_cum_source = compute_norm_cum_histogram(source);
+    int *hist_cum_target = compute_norm_cum_histogram(target);
+
+    int *histogram_matching = compute_histogram_matching(hist_cum_source, hist_cum_target);
+
+    for (int h = 0; h < source->height; ++h) {
+        for (int w = 0; w < source->width; ++w) {
+            source->pixels[h][w] = (unsigned char) histogram_matching[source->pixels[h][w]];
+        }
+    }
+}
