@@ -44,6 +44,8 @@ private:
 
     void OnShowHistogram(wxCommandEvent &event);
 
+    void OnShowCumulativeHistogram(wxCommandEvent &event);
+
     void OnAdjustBrightness(wxCommandEvent &event);
 
     void OnAdjustContrast(wxCommandEvent &event);
@@ -52,11 +54,15 @@ private:
 
     void OnEqualizeHistogram(wxCommandEvent &event);
 
+    void OnMatchHistogram(wxCommandEvent &event);
+
     void OnExit(wxCommandEvent &event);
 
     void OnAbout(wxCommandEvent &event);
 
     void ShowImage();
+
+    void ShowImageInNewFrame(image_t *image_to_show, const char *frame_title);
 };
 
 enum {
@@ -67,10 +73,12 @@ enum {
     ID_GRAY_SCALE = 5,
     ID_QUANTIZE = 6,
     ID_SHOW_HISTOGRAM = 7,
-    ID_ADJUST_BRIGHTNESS = 8,
-    ID_ADJUST_CONTRAST = 9,
-    ID_NEGATIVE = 10,
-    ID_EQUALIZE_HISTOGRAM = 11
+    ID_SHOW_CUM_HISTOGRAM = 8,
+    ID_ADJUST_BRIGHTNESS = 9,
+    ID_ADJUST_CONTRAST = 10,
+    ID_NEGATIVE = 11,
+    ID_EQUALIZE_HISTOGRAM = 12,
+    ID_MATCH_HISTOGRAM = 13
 };
 
 wxIMPLEMENT_APP(MyApp);
@@ -106,6 +114,8 @@ MyFrame::MyFrame()
     auto *menu2 = new wxMenu;
     menu2->Append(ID_SHOW_HISTOGRAM, "&Show Histogram...\tCtrl-H",
                   "Calculate and show histogram");
+    menu2->Append(ID_SHOW_CUM_HISTOGRAM, "&Show Cumulative Histogram...\tCtrl-Shift-H",
+                  "Calculate and show histogram");
     menu2->Append(ID_ADJUST_BRIGHTNESS, "&Adjust Brightness...\tCtrl-B",
                   "Add bias term to image");
     menu2->Append(ID_ADJUST_CONTRAST, "&Adjust Contrast...\tCtrl-C",
@@ -114,6 +124,8 @@ MyFrame::MyFrame()
                   "Make image it's negative (p' = 255 - p)");
     menu2->Append(ID_EQUALIZE_HISTOGRAM, "&Equalize Histogram...\tCtrl-E",
                   "Attempts to optimize contrast with histogram equalization");
+    menu2->Append(ID_MATCH_HISTOGRAM, "&Match Histogram...\tCtrl-Alt-M",
+                  "Attempts to match current image's histogram to target's histogram");
 
     auto *menuHelp = new wxMenu;
     menuHelp->Append(wxID_ABOUT);
@@ -144,10 +156,12 @@ MyFrame::MyFrame()
     Bind(wxEVT_MENU, &MyFrame::OnGrayScale, this, ID_GRAY_SCALE);
     Bind(wxEVT_MENU, &MyFrame::OnQuantize, this, ID_QUANTIZE);
     Bind(wxEVT_MENU, &MyFrame::OnShowHistogram, this, ID_SHOW_HISTOGRAM);
+    Bind(wxEVT_MENU, &MyFrame::OnShowCumulativeHistogram, this, ID_SHOW_CUM_HISTOGRAM);
     Bind(wxEVT_MENU, &MyFrame::OnAdjustBrightness, this, ID_ADJUST_BRIGHTNESS);
     Bind(wxEVT_MENU, &MyFrame::OnAdjustContrast, this, ID_ADJUST_CONTRAST);
     Bind(wxEVT_MENU, &MyFrame::OnNegative, this, ID_NEGATIVE);
     Bind(wxEVT_MENU, &MyFrame::OnEqualizeHistogram, this, ID_EQUALIZE_HISTOGRAM);
+    Bind(wxEVT_MENU, &MyFrame::OnMatchHistogram, this, ID_MATCH_HISTOGRAM);
 
     Bind(wxEVT_MENU, &MyFrame::OnAbout, this, wxID_ABOUT);
     Bind(wxEVT_MENU, &MyFrame::OnExit, this, wxID_EXIT);
@@ -169,7 +183,7 @@ void MyFrame::OnOpen(wxCommandEvent &event) {
             _("JPEG images (*.jpg, *.jpeg)|*.jpg;*.jpeg"),
             wxFD_OPEN, wxDefaultPosition);
 
-    // Creates a "open file" dialog with 4 file types
+    // Creates a "open file" dialog with 2 file types
     if (OpenDialog->ShowModal() == wxID_OK) // if the user click "Open" instead of "cancel"
     {
         wxString filename = OpenDialog->GetPath();
@@ -186,7 +200,6 @@ void MyFrame::OnOpen(wxCommandEvent &event) {
             ShowImage();
         }
     }
-
 }
 
 void MyFrame::OnSave(wxCommandEvent &event) {
@@ -280,14 +293,10 @@ void MyFrame::ShowImage() {
     staticBitmap->SetBitmap(wx_bitmap);
 }
 
-void MyFrame::OnShowHistogram(wxCommandEvent &event) {
-    if (!image) {
-        wxLogMessage("You must open an image first!");
-        return;
-    }
-
-    wxFrame *frame = new wxFrame(nullptr, histogramFrames++, "Histogram", wxPoint(50, 50),
-                                 wxSize(static_cast<int>(HISTOGRAM_SIZE * 1.2), static_cast<int>(HISTOGRAM_SIZE * 1.2)));
+void MyFrame::ShowImageInNewFrame(image_t *image_to_show, const char *frame_title) {
+    wxFrame *frame = new wxFrame(nullptr, histogramFrames++, frame_title, wxPoint(50, 50),
+                                 wxSize(static_cast<int>(image_to_show->height * 1.2),
+                                        static_cast<int>(image_to_show->width * 1.2)));
     wxPanel *panel = new wxPanel(frame);
     auto *hbox = new wxBoxSizer(wxHORIZONTAL);
 
@@ -297,20 +306,41 @@ void MyFrame::OnShowHistogram(wxCommandEvent &event) {
     hbox->Add(histogramBitmap, 1, wxEXPAND);
     frame->SetSizer(hbox);
 
-    image_t *histogram = histogram_plot(compute_histogram(image));
+    image_t *displayable = get_displayable(image_to_show);
+    wxImage wx_image(displayable->width, displayable->height, pixel_array_to_unsigned_char_array(displayable), true);
+    wxBitmap wx_bitmap(wx_image);
 
+    frame->Show(true);
+    histogramBitmap->SetBitmap(wx_bitmap);
+}
+
+void MyFrame::OnShowHistogram(wxCommandEvent &event) {
+    if (!image) {
+        wxLogMessage("You must open an image first!");
+        return;
+    }
+    image_t *histogram = histogram_plot(compute_histogram(image));
     if (!histogram) {
         wxLogMessage("Error generating histogram");
         return;
     }
 
-    image_t *displayable = get_displayable(histogram);
-    wxImage wx_image(displayable->width, displayable->height, pixel_array_to_unsigned_char_array(displayable), true);
-    wxBitmap wx_bitmap(wx_image);
+    ShowImageInNewFrame(histogram, "Histogram");
+}
 
+void MyFrame::OnShowCumulativeHistogram(wxCommandEvent &event) {
+    if (!image) {
+        wxLogMessage("You must open an image first!");
+        return;
+    }
+    image_t *cum_hist = histogram_plot(compute_norm_cum_histogram(image));
+    if (!cum_hist) {
+        wxLogMessage("Error generating histogram");
+        return;
+    }
+    const char *frame_title = "Cumulative Histogram";
 
-    frame->Show(true);
-    histogramBitmap->SetBitmap(wx_bitmap);
+    ShowImageInNewFrame(cum_hist, frame_title);
 }
 
 void MyFrame::OnAdjustBrightness(wxCommandEvent &event) {
@@ -383,4 +413,42 @@ void MyFrame::OnEqualizeHistogram(wxCommandEvent &event) {
     equalize_histogram(image);
 
     ShowImage();
+}
+
+void MyFrame::OnMatchHistogram(wxCommandEvent &event) {
+    if (!image) {
+        wxLogMessage("You must open an image first!");
+        return;
+    }
+
+    wxFileDialog *OpenDialog = new wxFileDialog(
+            this, _("Choose histogram matching target"), wxEmptyString, wxEmptyString,
+            _("JPEG images (*.jpg, *.jpeg)|*.jpg;*.jpeg"),
+            wxFD_OPEN, wxDefaultPosition);
+
+    // Creates a "open file" dialog with 2 file types
+    if (OpenDialog->ShowModal() == wxID_OK) // if the user click "Open" instead of "cancel"
+    {
+        wxString filename = OpenDialog->GetPath();
+
+        image_t *target = jpeg_decompress((char *) filename.mb_str().data());
+        // Set the Status to reflect that file saved
+        SetStatusText((image->last_operation == DECOMPRESSION_SUCCESS) ? "File opened successfully!"
+                                                                       : "Failed to open file!");
+
+        if (image->last_operation == DECOMPRESSION_SUCCESS) {
+
+            image_t *histogram_source = histogram_plot(compute_histogram(image));
+            image_t *histogram_target = histogram_plot(compute_histogram(target));
+            ShowImageInNewFrame(histogram_source, "Source Histogram");
+            ShowImageInNewFrame(histogram_target, "Target Histogram");
+
+            match_histogram(image, target);
+
+            image_t *histogram_matched = histogram_plot(compute_histogram(image));
+            ShowImageInNewFrame(histogram_matched, "Matched Histogram");
+
+            ShowImage();
+        }
+    }
 }
