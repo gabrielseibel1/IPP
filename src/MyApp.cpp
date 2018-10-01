@@ -5,8 +5,14 @@
 #ifndef WX_PRECOMP
 
 #include <wx/wx.h>
+#include <wx/tokenzr.h>
 
 #define __GXX_ABI_VERSION 1002
+
+#define ASSERT_IMAGE_OPEN if (!image) {\
+        wxLogMessage("You must open an image first!");\
+        return;\
+    }
 
 extern "C" {
 #include <image_manipulation.h>
@@ -56,6 +62,8 @@ private:
 
     void OnMatchHistogram(wxCommandEvent &event);
 
+    void OnZoomOut(wxCommandEvent &event);
+
     void OnExit(wxCommandEvent &event);
 
     void OnAbout(wxCommandEvent &event);
@@ -78,7 +86,8 @@ enum {
     ID_ADJUST_CONTRAST = 10,
     ID_NEGATIVE = 11,
     ID_EQUALIZE_HISTOGRAM = 12,
-    ID_MATCH_HISTOGRAM = 13
+    ID_MATCH_HISTOGRAM = 13,
+    ID_ZOOM_OUT = 14
 };
 
 wxIMPLEMENT_APP(MyApp);
@@ -126,6 +135,8 @@ MyFrame::MyFrame()
                   "Attempts to optimize contrast with histogram equalization");
     menu2->Append(ID_MATCH_HISTOGRAM, "&Match Histogram...\tCtrl-Alt-M",
                   "Attempts to match current image's histogram to target's histogram");
+    menu2->Append(ID_ZOOM_OUT, "&Zoom Out...\tCtrl-Z",
+                  "Zooms out on the image using a window of size Sx by Sy");
 
     auto *menuHelp = new wxMenu;
     menuHelp->Append(wxID_ABOUT);
@@ -162,6 +173,7 @@ MyFrame::MyFrame()
     Bind(wxEVT_MENU, &MyFrame::OnNegative, this, ID_NEGATIVE);
     Bind(wxEVT_MENU, &MyFrame::OnEqualizeHistogram, this, ID_EQUALIZE_HISTOGRAM);
     Bind(wxEVT_MENU, &MyFrame::OnMatchHistogram, this, ID_MATCH_HISTOGRAM);
+    Bind(wxEVT_MENU, &MyFrame::OnZoomOut, this, ID_ZOOM_OUT);
 
     Bind(wxEVT_MENU, &MyFrame::OnAbout, this, wxID_ABOUT);
     Bind(wxEVT_MENU, &MyFrame::OnExit, this, wxID_EXIT);
@@ -203,10 +215,7 @@ void MyFrame::OnOpen(wxCommandEvent &event) {
 }
 
 void MyFrame::OnSave(wxCommandEvent &event) {
-    if (!image) {
-        wxLogMessage("You must open an image first!");
-        return;
-    }
+    ASSERT_IMAGE_OPEN
 
     wxFileDialog *SaveDialog = new wxFileDialog(
             this, _("Choose where to save the file"), wxEmptyString, wxEmptyString,
@@ -228,10 +237,7 @@ void MyFrame::OnSave(wxCommandEvent &event) {
 }
 
 void MyFrame::OnMirrorVertically(wxCommandEvent &event) {
-    if (!image) {
-        wxLogMessage("You must open an image first!");
-        return;
-    }
+    ASSERT_IMAGE_OPEN
 
     mirror_vertically(image);
 
@@ -239,10 +245,7 @@ void MyFrame::OnMirrorVertically(wxCommandEvent &event) {
 }
 
 void MyFrame::OnMirrorHorizontally(wxCommandEvent &event) {
-    if (!image) {
-        wxLogMessage("You must open an image first!");
-        return;
-    }
+    ASSERT_IMAGE_OPEN
 
     mirror_horizontally(image);
 
@@ -250,10 +253,7 @@ void MyFrame::OnMirrorHorizontally(wxCommandEvent &event) {
 }
 
 void MyFrame::OnGrayScale(wxCommandEvent &event) {
-    if (!image) {
-        wxLogMessage("You must open an image first!");
-        return;
-    }
+    ASSERT_IMAGE_OPEN
 
     rgb_to_luminance(image);
 
@@ -261,10 +261,7 @@ void MyFrame::OnGrayScale(wxCommandEvent &event) {
 }
 
 void MyFrame::OnQuantize(wxCommandEvent &event) {
-    if (!image) {
-        wxLogMessage("You must open an image first!");
-        return;
-    }
+    ASSERT_IMAGE_OPEN
 
     wxTextEntryDialog *TextEntryDialog = new wxTextEntryDialog(
             this, _("Number of tones"), _("Quantization"));
@@ -280,10 +277,7 @@ void MyFrame::OnQuantize(wxCommandEvent &event) {
 }
 
 void MyFrame::ShowImage() {
-    if (!image) {
-        wxLogMessage("You must open an image first!");
-        return;
-    }
+    ASSERT_IMAGE_OPEN
 
     image_t *displayable = get_displayable(image);
     wxImage wx_image(displayable->width, displayable->height, pixel_array_to_unsigned_char_array(displayable), true);
@@ -315,10 +309,8 @@ void MyFrame::ShowImageInNewFrame(image_t *image_to_show, const char *frame_titl
 }
 
 void MyFrame::OnShowHistogram(wxCommandEvent &event) {
-    if (!image) {
-        wxLogMessage("You must open an image first!");
-        return;
-    }
+    ASSERT_IMAGE_OPEN
+
     image_t *histogram = histogram_plot(compute_histogram(image));
     if (!histogram) {
         wxLogMessage("Error generating histogram");
@@ -329,10 +321,8 @@ void MyFrame::OnShowHistogram(wxCommandEvent &event) {
 }
 
 void MyFrame::OnShowCumulativeHistogram(wxCommandEvent &event) {
-    if (!image) {
-        wxLogMessage("You must open an image first!");
-        return;
-    }
+    ASSERT_IMAGE_OPEN
+
     image_t *cum_hist = histogram_plot(compute_norm_cum_histogram(image));
     if (!cum_hist) {
         wxLogMessage("Error generating histogram");
@@ -344,10 +334,7 @@ void MyFrame::OnShowCumulativeHistogram(wxCommandEvent &event) {
 }
 
 void MyFrame::OnAdjustBrightness(wxCommandEvent &event) {
-    if (!image) {
-        wxLogMessage("You must open an image first!");
-        return;
-    }
+    ASSERT_IMAGE_OPEN
 
     wxTextEntryDialog *TextEntryDialog = new wxTextEntryDialog(
             this, _("Summing bias term value"), _("Brightness Adjust"));
@@ -369,10 +356,7 @@ void MyFrame::OnAdjustBrightness(wxCommandEvent &event) {
 }
 
 void MyFrame::OnAdjustContrast(wxCommandEvent &event) {
-    if (!image) {
-        wxLogMessage("You must open an image first!");
-        return;
-    }
+    ASSERT_IMAGE_OPEN
 
     wxTextEntryDialog *TextEntryDialog = new wxTextEntryDialog(
             this, _("Multiplying gain term value"), _("Contrast Adjustment"));
@@ -394,10 +378,7 @@ void MyFrame::OnAdjustContrast(wxCommandEvent &event) {
 }
 
 void MyFrame::OnNegative(wxCommandEvent &event) {
-    if (!image) {
-        wxLogMessage("You must open an image first!");
-        return;
-    }
+    ASSERT_IMAGE_OPEN
 
     negative(image);
 
@@ -405,10 +386,7 @@ void MyFrame::OnNegative(wxCommandEvent &event) {
 }
 
 void MyFrame::OnEqualizeHistogram(wxCommandEvent &event) {
-    if (!image) {
-        wxLogMessage("You must open an image first!");
-        return;
-    }
+    ASSERT_IMAGE_OPEN
 
     equalize_histogram(image);
 
@@ -416,10 +394,7 @@ void MyFrame::OnEqualizeHistogram(wxCommandEvent &event) {
 }
 
 void MyFrame::OnMatchHistogram(wxCommandEvent &event) {
-    if (!image) {
-        wxLogMessage("You must open an image first!");
-        return;
-    }
+    ASSERT_IMAGE_OPEN
 
     wxFileDialog *OpenDialog = new wxFileDialog(
             this, _("Choose histogram matching target"), wxEmptyString, wxEmptyString,
@@ -450,5 +425,34 @@ void MyFrame::OnMatchHistogram(wxCommandEvent &event) {
 
             ShowImage();
         }
+    }
+}
+
+void MyFrame::OnZoomOut(wxCommandEvent &event) {
+    ASSERT_IMAGE_OPEN;
+
+    wxTextEntryDialog *TextEntryDialog = new wxTextEntryDialog(
+            this, _("Provide Sx,Sy (size of zoom-out window)"), _("Zoom out"));
+
+    if (TextEntryDialog->ShowModal() == wxID_OK) // if the user click "Open" instead of "cancel"
+    {
+        double sx = 0, sy = 0;
+        bool bad_input = false;
+        wxStringTokenizer tokenizer(TextEntryDialog->GetValue(), ",");
+
+        if (tokenizer.HasMoreTokens()) tokenizer.NextToken().ToDouble(&sx);
+        else bad_input = true;
+
+        if (tokenizer.HasMoreTokens()) tokenizer.NextToken().ToDouble(&sy);
+        else bad_input = true;
+
+        if (bad_input || sx < 1 || sy < 1) {
+            wxLogMessage("Provide Sx and Sy >= 1. Use the format Sx,Sy.");
+            return;
+        }
+
+        zoom_out(image, static_cast<int>(sx), static_cast<int>(sy));
+
+        ShowImage();
     }
 }
