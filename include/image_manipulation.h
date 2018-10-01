@@ -146,4 +146,12 @@ void equalize_histogram(image_t *image);
  */
 void match_histogram(image_t *source, image_t *target);
 
+/**
+ * Zoom out of image using a sliding window of size sx by sy, taking the mean of the channels as it slides
+ * @param image the image to zoom-out
+ * @param sx number of pixels in sliding window in horizontal axis
+ * @param sy number of pixels in sliding window in vertical axis
+ */
+void zoom_out(image_t *image, int sx, int sy);
+
 #endif //FPI_ASSIGNMENT_1_IMAGE_MANIPULATION_H

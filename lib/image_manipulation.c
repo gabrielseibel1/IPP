@@ -21,6 +21,19 @@ int get_closest(int candidate1, int candidate2, int goal);
 
 int *compute_histogram_matching(const int *hist_cum_source, const int *hist_cum_target);
 
+/**
+ * Returns vector of unsigned char of size image->channels of the average of a range of pixels of the image.
+ * @param image the image from which the pixels are retrieved
+ * @param first_y first pixel y coordinate
+ * @param last_y last pixel y coordinate
+ * @param first_x first pixel x coordinate
+ * @param last_x  last pixel x coordinate
+ * @return vector of unsigned char of size image->channels averaged channels of pixels in range
+ */
+unsigned char *average_pixel(image_t *image, int first_y, int last_y, int first_x, int last_x);
+
+int min_int(int a, int b) ;
+
 image_t *new_image() {
     return malloc(sizeof(image_t));
 }
@@ -523,3 +536,76 @@ void match_histogram(image_t *source, image_t *target) {
         }
     }
 }
+
+void zoom_out(image_t *image, int sx, int sy) {
+    // matrix of zoomed out pixels
+    int new_height = (int) ceil((double) image->height / sy);
+    int new_width = (int) ceil((double) image->width / sx);
+    unsigned char **new_pixels = new_unsigned_char_matrix(new_height, new_width * image->channels);
+
+    // slide window left to right and bottom to top
+    for (int pos_y = 0; pos_y < image->height; pos_y += sy) {
+        for (int pos_x = 0; pos_x < image->width; pos_x += sx) {
+
+            // window averages pixels from (pos_x, pos_y) to (pos_x + step_x - 1, pos_y + step_y - 1)
+            int max_pixel_y = min_int(pos_y + sy - 1, image->height - 1);
+            int max_pixel_x = min_int(pos_x + sx - 1, image->width - 1);
+            unsigned char *averaged_channels = average_pixel(image, pos_y, max_pixel_y, pos_x, max_pixel_x);
+
+            // fill new pixel with obtained channels
+            int new_pixel_y = (pos_y / sy);
+            int new_pixel_x = (pos_x / sx);
+            for (int channel = 0; channel < image->channels; ++channel) {
+                new_pixels[new_pixel_y][new_pixel_x * image->channels + channel] = averaged_channels[channel];
+            }
+
+            free(averaged_channels);
+        }
+    }
+
+    free_pixels(image);
+    image->pixels = new_pixels;
+    image->height = new_height;
+    image->width = new_width;
+}
+
+int min_int(int a, int b) {
+    return (a < b) ? a : b;
+}
+
+/**
+ * Returns vector of unsigned char of size image->channels of the average of a range of pixels of the image.
+ * @param image the image from which the pixels are retrieved
+ * @param first_y first pixel y coordinate
+ * @param last_y last pixel y coordinate
+ * @param first_x first pixel x coordinate
+ * @param last_x  last pixel x coordinate
+ * @return vector of unsigned char of size image->channels averaged channels of pixels in range
+ */
+unsigned char *average_pixel(image_t *image, int first_y, int last_y, int first_x, int last_x) {
+    int number_of_pixels = (last_y - first_y + 1) * (last_x - first_x + 1);
+
+    // iterate over pixels in window, accumulating a sum for each channel
+    int *channels_sums = malloc(image->channels * sizeof(int));
+    memset(channels_sums, 0, image->channels * sizeof(int));
+
+    for (int pixel_y = 0; first_y + pixel_y <= last_y; ++pixel_y) {
+        for (int pixel_x = 0; first_x + pixel_x <= last_x; ++pixel_x) {
+            for (int channel = 0; channel < image->channels; ++channel) {
+                channels_sums[channel] +=
+                        image->pixels[first_y + pixel_y][(first_x + pixel_x) * image->channels + channel];
+            }
+        }
+    }
+
+    // take the mean of each component, based on accumulated sum
+    unsigned char *channels_means = malloc(image->channels * sizeof(unsigned char));
+    for (int c = 0; c < image->channels; ++c) {
+        channels_means[c] = (unsigned char) (channels_sums[c] / number_of_pixels);
+    }
+
+    free(channels_sums);
+
+    return channels_means;
+}
+
