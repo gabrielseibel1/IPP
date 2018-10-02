@@ -8,8 +8,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <setjmp.h>
-#include <math.h>
 #include <memory.h>
+#include <math.h>
 
 unsigned char closest_level(unsigned char value, int n_tones);
 

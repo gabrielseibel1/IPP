@@ -23,6 +23,7 @@ include(${wxWidgets_USE_FILE})
 target_link_libraries(IPP
         image_manipulation_lib
         ${wxWidgets_LIBRARIES}
+        m
 )
 
 # Img lib test executable
@@ -31,4 +32,5 @@ add_executable(img_lib_test
 )
 target_link_libraries(img_lib_test
         image_manipulation_lib
+        m
 )
