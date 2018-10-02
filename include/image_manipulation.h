@@ -160,4 +160,10 @@ void zoom_out(image_t *image, int sx, int sy);
  */
 void zoom_in(image_t *image);
 
+/**
+ * Rotates every pixel by 90 degrees clock-wise
+ * @param image the image to be rotated
+ */
+void rotate_90_degrees_clock_wise(image_t *image);
+
 #endif //FPI_ASSIGNMENT_1_IMAGE_MANIPULATION_H
