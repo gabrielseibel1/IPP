@@ -441,12 +441,13 @@ void negative(image_t *image) {
 }
 
 void equalize_histogram(image_t *image) {
+    image_t *copy = copy_image(image);
     int *hist_cum = compute_norm_cum_histogram(image);
 
     for (int h = 0; h < image->height; ++h) {
         for (int w = 0; w < image->width * image->channels; w += image->channels) {
             for (int c = 0; c < image->channels; ++c) {
-                image->pixels[h][w + c] = (unsigned char) hist_cum[image->pixels[h][w + c]];
+                image->pixels[h][w + c] = (unsigned char) hist_cum[copy->pixels[h][w + c]];
             }
         }
     }
@@ -462,13 +463,18 @@ int *compute_norm_cum_histogram(image_t *image) {
 
     double scale_factor = (double) 255 / pixels_in_hist;
 
-    hist_cum[0] = (int) (scale_factor * hist[0]);
+    // accumulate
+    hist_cum[0] = hist[0];
     for (int i = 1; i < HISTOGRAM_SIZE; ++i) {
-        hist_cum[i] = (int) (hist_cum[i - 1] + scale_factor * hist[i]);
+        hist_cum[i] = (hist_cum[i - 1] + hist[i]);
     }
-    printf("hist:%d | cum:%d\n", pixels_in_hist, pixels_in_histogram(hist_cum));
-    return hist_cum;
 
+    // normalize
+    for (int i = 0; i < HISTOGRAM_SIZE; ++i) {
+        hist_cum[i] = (int) ceil(hist_cum[i] * scale_factor);
+    }
+
+    return hist_cum;
 }
 
 int pixels_in_histogram(const int *hist) {
