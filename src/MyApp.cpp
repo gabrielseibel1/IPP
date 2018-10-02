@@ -211,7 +211,7 @@ void MyFrame::OnExit(wxCommandEvent &event) {
 void MyFrame::OnAbout(wxCommandEvent &event) {
     wxMessageBox("This is a simple image manipulation tool\n"
                  "built with jpeglib and wxWidgets by Gabriel Seibel\n",
-                 "About FPI Assignment 1", wxOK | wxICON_INFORMATION);
+                 "About IPP", wxOK | wxICON_INFORMATION);
 }
 
 void MyFrame::OnOpen(wxCommandEvent &event) {

@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.9)
 
-project(fpi_assignment_1)
+project(IPP)
 set(CMAKE_CXX_STANDARD 11)
 
 # Headers folder
@@ -14,13 +14,13 @@ add_library(image_manipulation_lib STATIC
 target_link_libraries(image_manipulation_lib jpeg)
 set_target_properties(image_manipulation_lib PROPERTIES PUBLIC_HEADER include/image_manipulation.h)
 
-# GUI test executable
-add_executable(fpi_assignment_1
+# GUI executable
+add_executable(IPP
         src/MyApp.cpp
 )
 find_package(wxWidgets REQUIRED COMPONENTS net core base)
 include(${wxWidgets_USE_FILE})
-target_link_libraries(fpi_assignment_1
+target_link_libraries(IPP
         image_manipulation_lib
         ${wxWidgets_LIBRARIES}
 )
