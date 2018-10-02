@@ -17,9 +17,9 @@ int pixels_in_histogram(const int *hist);
 
 int *compute_norm_cum_histogram(image_t *image);
 
-int get_closest(int candidate1, int candidate2, int goal);
-
 int *compute_histogram_matching(const int *hist_cum_source, const int *hist_cum_target);
+
+unsigned char *pixel(image_t *image, int x, int y);
 
 /**
  * Returns vector of unsigned char of size image->channels of the average of a range of pixels of the image.
@@ -609,6 +609,7 @@ unsigned char *average_pixel(image_t *image, int first_y, int last_y, int first_
     return channels_means;
 }
 
+
 void zoom_in(image_t *image) {
     // matrix of zoomed in pixels
     int new_height = image->height * 2 - 1;
@@ -676,12 +677,12 @@ void rotate_90_degrees_clock_wise(image_t *image) {
 
         // old columns become new rows
         for (int old_col = 0; old_col < image->width * image->channels; old_col += image->channels) {
-           int new_row = old_col / image->channels;
+            int new_row = old_col / image->channels;
 
-           // use new and old indices to map the pixels
-           for (int channel = 0; channel < image->channels; ++channel) {
-               new_pixels[new_row][new_col + channel] = image->pixels[old_row][old_col + channel];
-           }
+            // use new and old indices to map the pixels
+            for (int channel = 0; channel < image->channels; ++channel) {
+                new_pixels[new_row][new_col + channel] = image->pixels[old_row][old_col + channel];
+            }
         }
     }
 
@@ -689,4 +690,187 @@ void rotate_90_degrees_clock_wise(image_t *image) {
     image->pixels = new_pixels;
     image->height = new_height;
     image->width = new_width;
+}
+
+const unsigned char *get_pixel(image_t *image, int x, int y) {
+    unsigned char *pixel = malloc(image->channels * sizeof(unsigned char));
+    for (int channel = 0; channel < image->channels; ++channel) {
+        pixel[channel] = image->pixels[y][x * image->channels + channel];
+    }
+    return pixel;
+}
+
+void set_pixel(image_t *image, int x, int y, const unsigned char *pixel) {
+    for (int channel = 0; channel < image->channels; ++channel) {
+        image->pixels[y][x * image->channels + channel] = pixel[channel];
+    }
+}
+
+void convolve(image_t *image, float **filter, boolean clamp) {
+    rgb_to_luminance(image);
+
+    // image of convolved pixels
+    int new_height = image->height - FILTER_SIZE / 2;
+    int new_width = image->width - FILTER_SIZE / 2;
+    unsigned char **new_pixels = new_unsigned_char_matrix(new_height, new_width);
+    for (int row = 0; row < new_height; ++row) {
+        memset(new_pixels[row], 0, new_width * image->channels * sizeof(unsigned char));
+    }
+
+    // filter rotated by 180 degrees
+    float **rot_filter = new_filter(FILTER_SIZE);
+    for (int i = 0; i < FILTER_SIZE; ++i) {
+        for (int j = 0; j < FILTER_SIZE; ++j) {
+            rot_filter[i][j] = filter[FILTER_SIZE - i - 1][FILTER_SIZE - j - 1];
+        }
+    }
+
+    // slide filter through image
+    for (int y = FILTER_SIZE / 2; y < new_height - FILTER_SIZE / 2; ++y) {
+        for (int x = FILTER_SIZE / 2; x < new_width - FILTER_SIZE / 2; ++x) {
+
+            // accumulate pixel by pixel multiplication around center of filter
+            float conv_point = 0;
+            for (int y_offset = -FILTER_SIZE / 2; y_offset <= FILTER_SIZE / 2; ++y_offset) {
+                for (int x_offset = -FILTER_SIZE / 2; x_offset <= FILTER_SIZE / 2; ++x_offset) {
+
+                    conv_point += rot_filter[FILTER_SIZE / 2 + y_offset][FILTER_SIZE / 2 + x_offset] *
+                                  (float) image->pixels[y + y_offset][x + x_offset];
+                }
+            }
+
+            // fix out of range values
+            if (clamp) conv_point += 127;
+            if (conv_point > 255) conv_point = 255;
+            if (conv_point < 0) conv_point = 0;
+
+            // save calculation as unsigned char
+            new_pixels[y][x] = (unsigned char) conv_point;
+        }
+    }
+
+    // free filter rotated by 180 degrees
+    for (int i = 0; i < FILTER_SIZE; ++i) {
+        free(rot_filter[i]);
+    }
+    free(rot_filter);
+
+    free_pixels(image);
+    image->pixels = new_pixels;
+    image->height = new_height;
+    image->width = new_width;
+}
+
+float **new_filter(int size) {
+    float **filter = malloc(size * sizeof(float));
+    for (int i = 0; i < size; ++i) {
+        filter[i] = malloc(size * sizeof(float));
+    }
+    return filter;
+}
+
+float **gaussian_filter() {
+    float local_filter[FILTER_SIZE][FILTER_SIZE] =
+            {{0.0625, 0.125, 0.0625},
+             {0.125,  0.25,  0.125},
+             {0.0625, 0.125, 0.0625}};
+
+
+    float **filter = new_filter(FILTER_SIZE);
+    for (int i = 0; i < FILTER_SIZE; ++i) {
+        memcpy(filter[i], local_filter[i], FILTER_SIZE * sizeof(float));
+    }
+
+    return filter;
+}
+
+float **laplacian_filter() {
+    float local_filter[FILTER_SIZE][FILTER_SIZE] =
+            {{0,  -1, 0},
+             {-1, 4,  -1},
+             {0,  -1, 0}};
+
+
+    float **filter = new_filter(FILTER_SIZE);
+    for (int i = 0; i < FILTER_SIZE; ++i) {
+        memcpy(filter[i], local_filter[i], FILTER_SIZE * sizeof(float));
+    }
+
+    return filter;
+}
+
+float **high_pass_filter() {
+    float local_filter[FILTER_SIZE][FILTER_SIZE] =
+            {{-1, -1, -1},
+             {-1, 8,  -1},
+             {-1, -1, -1}};
+
+
+    float **filter = new_filter(FILTER_SIZE);
+    for (int i = 0; i < FILTER_SIZE; ++i) {
+        memcpy(filter[i], local_filter[i], FILTER_SIZE * sizeof(float));
+    }
+
+    return filter;
+}
+
+float **prewitt_hx_filter() {
+    float local_filter[FILTER_SIZE][FILTER_SIZE] =
+            {{-1, 0, 1},
+             {-1, 0, 1},
+             {-1, 0, 1}};
+
+
+    float **filter = new_filter(FILTER_SIZE);
+    for (int i = 0; i < FILTER_SIZE; ++i) {
+        memcpy(filter[i], local_filter[i], FILTER_SIZE * sizeof(float));
+    }
+
+    return filter;
+}
+
+float **prewitt_hy_filter() {
+    float local_filter[FILTER_SIZE][FILTER_SIZE] =
+            {{-1, -1, -1},
+             {0,  0,  0},
+             {1,  1,  1}};
+
+
+    float **filter = new_filter(FILTER_SIZE);
+    for (int i = 0; i < FILTER_SIZE; ++i) {
+        memcpy(filter[i], local_filter[i], FILTER_SIZE * sizeof(float));
+    }
+
+    return filter;
+}
+
+
+float **sobel_hx_filter() {
+    float local_filter[FILTER_SIZE][FILTER_SIZE] =
+            {{-1, 0, 1},
+             {-2, 0, 2},
+             {-1, 0, 1}};
+
+
+    float **filter = new_filter(FILTER_SIZE);
+    for (int i = 0; i < FILTER_SIZE; ++i) {
+        memcpy(filter[i], local_filter[i], FILTER_SIZE * sizeof(float));
+    }
+
+    return filter;
+}
+
+float **sobel_hy_filter() {
+    float local_filter[FILTER_SIZE][FILTER_SIZE] =
+            {{-1, -2, -1},
+             {0,  0,  0},
+             {1,  2,  1}};
+
+
+    float **filter = new_filter(FILTER_SIZE);
+    for (int i = 0; i < FILTER_SIZE; ++i) {
+        memcpy(filter[i], local_filter[i], FILTER_SIZE * sizeof(float));
+    }
+
+    return filter;
 }

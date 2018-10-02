@@ -12,6 +12,7 @@
 #define FPI_ASSIGNMENT_1_IMAGE_MANIPULATION_H
 
 #define HISTOGRAM_SIZE 256
+#define FILTER_SIZE 3
 
 enum result {
     COMPRESSION_SUCCESS,
@@ -165,5 +166,23 @@ void zoom_in(image_t *image);
  * @param image the image to be rotated
  */
 void rotate_90_degrees_clock_wise(image_t *image);
+
+
+/**
+ * Convolve image with FILTER_SIZE by FILTER_SIZE filter
+ * @param image the image to be convolved
+ * @param filter the filter to use in the convolution
+ */
+void convolve(image_t *image, float **filter, boolean clamp);
+
+
+float **new_filter(int size);
+float **gaussian_filter();
+float **laplacian_filter();
+float **high_pass_filter();
+float **prewitt_hx_filter();
+float **prewitt_hy_filter();
+float **sobel_hx_filter();
+float **sobel_hy_filter();
 
 #endif //FPI_ASSIGNMENT_1_IMAGE_MANIPULATION_H

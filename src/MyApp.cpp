@@ -68,6 +68,10 @@ private:
 
     void OnRotate90DegreesClockWise(wxCommandEvent &event);
 
+    void OnConvolve(wxCommandEvent &event);
+
+    void OnGeneralConvolve(wxCommandEvent &event);
+
     void OnExit(wxCommandEvent &event);
 
     void OnAbout(wxCommandEvent &event);
@@ -93,7 +97,9 @@ enum {
     ID_MATCH_HISTOGRAM = 13,
     ID_ZOOM_OUT = 14,
     ID_ZOOM_IN = 15,
-    ID_ROTATE_90_DEGREES_CLOCK_WISE = 16
+    ID_ROTATE_90_DEGREES_CLOCK_WISE = 16,
+    ID_CONVOLVE = 17,
+    ID_GENERAL_CONVOLVE = 18
 };
 
 wxIMPLEMENT_APP(MyApp);
@@ -105,7 +111,7 @@ bool MyApp::OnInit() {
 }
 
 MyFrame::MyFrame()
-        : wxFrame(NULL, wxID_ANY, "FPI Assignment 1", wxPoint(-1, -1), wxSize(600, 600)) {
+        : wxFrame(NULL, wxID_ANY, "IPP - [Image Processing Playground]", wxPoint(-1, -1), wxSize(600, 600)) {
     image = nullptr;
 
     auto *menuFile = new wxMenu;
@@ -147,6 +153,11 @@ MyFrame::MyFrame()
                   "Zooms in on the image by a factor of 2x2");
     menu2->Append(ID_ROTATE_90_DEGREES_CLOCK_WISE, "&Rotate ...\tCtrl-R",
                   "Rotates image by 90 degrees clock-wise");
+    menu2->Append(ID_CONVOLVE, "&Convolve ...\tCtrl-F",
+                  "Convolves image with a filter chosen from a list");
+    menu2->Append(ID_GENERAL_CONVOLVE, "&Convolve (pro) ...\tCtrl-Shift-F",
+                  "Convolves image with any arbitrary filter");
+
 
     auto *menuHelp = new wxMenu;
     menuHelp->Append(wxID_ABOUT);
@@ -186,6 +197,8 @@ MyFrame::MyFrame()
     Bind(wxEVT_MENU, &MyFrame::OnZoomOut, this, ID_ZOOM_OUT);
     Bind(wxEVT_MENU, &MyFrame::OnZoomIn, this, ID_ZOOM_IN);
     Bind(wxEVT_MENU, &MyFrame::OnRotate90DegreesClockWise, this, ID_ROTATE_90_DEGREES_CLOCK_WISE);
+    Bind(wxEVT_MENU, &MyFrame::OnConvolve, this, ID_CONVOLVE);
+    Bind(wxEVT_MENU, &MyFrame::OnGeneralConvolve, this, ID_GENERAL_CONVOLVE);
 
     Bind(wxEVT_MENU, &MyFrame::OnAbout, this, wxID_ABOUT);
     Bind(wxEVT_MENU, &MyFrame::OnExit, this, wxID_EXIT);
@@ -483,4 +496,97 @@ void MyFrame::OnRotate90DegreesClockWise(wxCommandEvent &event) {
     rotate_90_degrees_clock_wise(image);
 
     ShowImage();
+}
+
+void MyFrame::OnConvolve(wxCommandEvent &event) {
+    ASSERT_IMAGE_OPEN
+
+    wxTextEntryDialog *TextEntryDialog = new wxTextEntryDialog(
+            this, _("Type desired filter, from the following: \n"
+                    "- Gaussian \n"
+                    "- Laplacian \n"
+                    "- High-Pass \n"
+                    "- Prewitt Hx \n"
+                    "- Prewitt Hy \n"
+                    "- Sobel Hx \n"
+                    "- Sobel Hy"),
+            _("Convolution"));
+
+
+    if (TextEntryDialog->ShowModal() == wxID_OK) // if the user click "Open" instead of "cancel"
+    {
+        wxString input = TextEntryDialog->GetValue().Upper();
+
+        float **filter;
+        if (wxStrcmp(input, _("GAUSSIAN")) == 0) {
+            convolve(image, filter = gaussian_filter(), false);
+
+        } else if (wxStrcmp(input, _("LAPLACIAN")) == 0) {
+            convolve(image, filter = laplacian_filter(), false);
+
+        } else if (wxStrcmp(input, _("HIGH-PASS")) == 0) {
+            convolve(image, filter = high_pass_filter(), false);
+
+        } else if (wxStrcmp(input, _("PREWITT HX")) == 0) {
+            convolve(image, filter = prewitt_hx_filter(), true);
+
+        } else if (wxStrcmp(input, _("PREWITT HY")) == 0) {
+            convolve(image, filter = prewitt_hy_filter(), true);
+
+        } else if (wxStrcmp(input, _("SOBEL HX")) == 0) {
+            convolve(image, filter = sobel_hx_filter(), true);
+
+        } else if (wxStrcmp(input, _("SOBEL HY")) == 0) {
+            convolve(image, filter = sobel_hy_filter(), true);
+
+        } else {
+            wxLogMessage("Choose one of the filters of the list.");
+            return;
+        }
+
+        free(filter);
+
+        ShowImage();
+    }
+}
+
+void MyFrame::OnGeneralConvolve(wxCommandEvent &event) {
+    ASSERT_IMAGE_OPEN
+
+    wxTextEntryDialog *TextEntryDialog = new wxTextEntryDialog(
+            this, _("Type desired filter in the following order/format: \n"
+                    "00 01 02 10 11 12 20 21 22 (where ij is F[i,j])"),
+            _("Convolution"));
+
+
+    if (TextEntryDialog->ShowModal() == wxID_OK) // if the user click "Open" instead of "cancel"
+    {
+        wxString input = TextEntryDialog->GetValue();
+        wxStringTokenizer tokenizer(input, " ");
+
+        float **filter = new_filter(FILTER_SIZE);
+        int components = 0;
+        for (int i = 0; i < FILTER_SIZE; ++i) {
+            for (int j = 0; j < FILTER_SIZE; ++j) {
+                if (tokenizer.HasMoreTokens()) {
+                    double input_as_double;
+                    tokenizer.NextToken().ToDouble(&input_as_double);
+                    filter[i][j] = (float) input_as_double;
+                    ++components;
+                }
+            }
+        }
+
+        if (components < FILTER_SIZE * FILTER_SIZE) {
+            wxLogMessage("Please provide nine components, in the following order/format: \n"
+                         "00 01 02 10 11 12 20 21 22 (where ij is F[i,j])");
+            return;
+        }
+
+        convolve(image, filter, false);
+
+        free(filter);
+
+        ShowImage();
+    }
 }

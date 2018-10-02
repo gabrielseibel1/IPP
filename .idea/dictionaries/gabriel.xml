@@ -3,13 +3,17 @@
     <words>
       <w>cinfo</w>
       <w>colorspace</w>
+      <w>convolves</w>
       <w>fopen</w>
       <w>grayscale</w>
       <w>hbox</w>
       <w>jerr</w>
       <w>jsample</w>
+      <w>laplacian</w>
       <w>mult</w>
+      <w>prewitt</w>
       <w>setjmp</w>
+      <w>sobel</w>
       <w>struct</w>
     </words>
   </dictionary>
