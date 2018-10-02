@@ -32,7 +32,7 @@ int *compute_histogram_matching(const int *hist_cum_source, const int *hist_cum_
  */
 unsigned char *average_pixel(image_t *image, int first_y, int last_y, int first_x, int last_x);
 
-int min_int(int a, int b) ;
+int min_int(int a, int b);
 
 image_t *new_image() {
     return malloc(sizeof(image_t));
@@ -609,3 +609,50 @@ unsigned char *average_pixel(image_t *image, int first_y, int last_y, int first_
     return channels_means;
 }
 
+void zoom_in(image_t *image) {
+    int new_height = image->height * 2 - 1;
+    int new_width = image->width * 2 - 1;
+    unsigned char **new_pixels = new_unsigned_char_matrix(new_height, new_width * image->channels);
+
+    for (int row = 0; row < image->height; ++row) {
+        memset(new_pixels[row], 0, new_width * image->channels * sizeof(unsigned char));
+    }
+
+    // copy old pixels with empty pixels in between
+    for (int row = 0; row < new_height; row += 2) {
+        for (int col = 0; col < new_width * image->channels; col += 2 * image->channels) {
+            for (int channel = 0; channel < image->channels; ++channel) {
+                new_pixels[row][col + channel] = image->pixels[row / 2][col / 2 + channel];
+            }
+        }
+    }
+
+    // fill half of each empty row R-1 with interpolation of row R-2 and R
+    for (int row = 2; row < new_height; row += 2) { // iterate rows skipping 1
+        for (int col = 0; col < new_width * image->channels; col += 2 * image->channels) { // iterate pixels skipping 1
+            for (int channel = 0; channel < image->channels; ++channel) { // iterates channels
+
+                int last = new_pixels[row - 2][col + channel];
+                int curr = new_pixels[row][col + channel];
+                new_pixels[row - 1][col + channel] = (unsigned char) ((last + curr) / 2);
+            }
+        }
+    }
+
+    // fill half of each empty column C-1 with interpolation of column C-2 and C
+    for (int row = 0; row < new_height; ++row) { // iterate rows
+        for (int col = 2 * image->channels; col < new_width * image->channels; col += 2 * image->channels) { // iterate pixels skipping 1
+            for (int channel = 0; channel < image->channels; ++channel) { // iterates channels
+
+                int last = new_pixels[row][col - 2 * (image->channels) + channel];
+                int curr = new_pixels[row][col + channel];
+                new_pixels[row][col - image->channels + channel] = (unsigned char) ((last + curr) / 2);
+            }
+        }
+    }
+
+    free_pixels(image);
+    image->pixels = new_pixels;
+    image->height = new_height;
+    image->width = new_width;
+}

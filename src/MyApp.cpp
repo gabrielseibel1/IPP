@@ -64,6 +64,8 @@ private:
 
     void OnZoomOut(wxCommandEvent &event);
 
+    void OnZoomIn(wxCommandEvent &event);
+
     void OnExit(wxCommandEvent &event);
 
     void OnAbout(wxCommandEvent &event);
@@ -87,7 +89,8 @@ enum {
     ID_NEGATIVE = 11,
     ID_EQUALIZE_HISTOGRAM = 12,
     ID_MATCH_HISTOGRAM = 13,
-    ID_ZOOM_OUT = 14
+    ID_ZOOM_OUT = 14,
+    ID_ZOOM_IN = 15
 };
 
 wxIMPLEMENT_APP(MyApp);
@@ -135,8 +138,10 @@ MyFrame::MyFrame()
                   "Attempts to optimize contrast with histogram equalization");
     menu2->Append(ID_MATCH_HISTOGRAM, "&Match Histogram...\tCtrl-Alt-M",
                   "Attempts to match current image's histogram to target's histogram");
-    menu2->Append(ID_ZOOM_OUT, "&Zoom Out...\tCtrl-Z",
+    menu2->Append(ID_ZOOM_OUT, "&Zoom Out...\tCtrl-PageDown",
                   "Zooms out on the image using a window of size Sx by Sy");
+    menu2->Append(ID_ZOOM_IN, "&Zoom In...\tCtrl-PageUp",
+                  "Zooms in on the image by a factor of 2x2");
 
     auto *menuHelp = new wxMenu;
     menuHelp->Append(wxID_ABOUT);
@@ -174,6 +179,7 @@ MyFrame::MyFrame()
     Bind(wxEVT_MENU, &MyFrame::OnEqualizeHistogram, this, ID_EQUALIZE_HISTOGRAM);
     Bind(wxEVT_MENU, &MyFrame::OnMatchHistogram, this, ID_MATCH_HISTOGRAM);
     Bind(wxEVT_MENU, &MyFrame::OnZoomOut, this, ID_ZOOM_OUT);
+    Bind(wxEVT_MENU, &MyFrame::OnZoomIn, this, ID_ZOOM_IN);
 
     Bind(wxEVT_MENU, &MyFrame::OnAbout, this, wxID_ABOUT);
     Bind(wxEVT_MENU, &MyFrame::OnExit, this, wxID_EXIT);
@@ -455,4 +461,12 @@ void MyFrame::OnZoomOut(wxCommandEvent &event) {
 
         ShowImage();
     }
+}
+
+void MyFrame::OnZoomIn(wxCommandEvent &event) {
+    ASSERT_IMAGE_OPEN
+
+    zoom_in(image);
+
+    ShowImage();
 }
