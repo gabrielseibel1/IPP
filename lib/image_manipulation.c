@@ -610,6 +610,7 @@ unsigned char *average_pixel(image_t *image, int first_y, int last_y, int first_
 }
 
 void zoom_in(image_t *image) {
+    // matrix of zoomed in pixels
     int new_height = image->height * 2 - 1;
     int new_width = image->width * 2 - 1;
     unsigned char **new_pixels = new_unsigned_char_matrix(new_height, new_width * image->channels);
@@ -641,13 +642,46 @@ void zoom_in(image_t *image) {
 
     // fill half of each empty column C-1 with interpolation of column C-2 and C
     for (int row = 0; row < new_height; ++row) { // iterate rows
-        for (int col = 2 * image->channels; col < new_width * image->channels; col += 2 * image->channels) { // iterate pixels skipping 1
+        for (int col = 2 * image->channels;
+             col < new_width * image->channels; col += 2 * image->channels) { // iterate pixels skipping 1
             for (int channel = 0; channel < image->channels; ++channel) { // iterates channels
 
                 int last = new_pixels[row][col - 2 * (image->channels) + channel];
                 int curr = new_pixels[row][col + channel];
                 new_pixels[row][col - image->channels + channel] = (unsigned char) ((last + curr) / 2);
             }
+        }
+    }
+
+    free_pixels(image);
+    image->pixels = new_pixels;
+    image->height = new_height;
+    image->width = new_width;
+}
+
+void rotate_90_degrees_clock_wise(image_t *image) {
+    // matrix of rotated pixels
+    int new_height = image->width;
+    int new_width = image->height;
+    unsigned char **new_pixels = new_unsigned_char_matrix(new_height, new_width * image->channels);
+
+    for (int row = 0; row < new_height; ++row) {
+        memset(new_pixels[row], 0, new_width * image->channels * sizeof(unsigned char));
+    }
+
+    // iterate over old rows
+    for (int old_row = 0; old_row < image->height; ++old_row) {
+        // fix new column as the old row from upside down
+        int new_col = (new_width - old_row - 1) * image->channels;
+
+        // old columns become new rows
+        for (int old_col = 0; old_col < image->width * image->channels; old_col += image->channels) {
+           int new_row = old_col / image->channels;
+
+           // use new and old indices to map the pixels
+           for (int channel = 0; channel < image->channels; ++channel) {
+               new_pixels[new_row][new_col + channel] = image->pixels[old_row][old_col + channel];
+           }
         }
     }
 
