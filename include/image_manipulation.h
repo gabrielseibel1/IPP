@@ -176,6 +176,7 @@ void rotate_90_degrees_clock_wise(image_t *image);
 void convolve(image_t *image, float **filter, boolean clamp);
 
 
+float **new_filter(int size);
 float **gaussian_filter();
 float **laplacian_filter();
 float **high_pass_filter();

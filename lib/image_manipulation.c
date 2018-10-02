@@ -34,8 +34,6 @@ unsigned char *average_pixel(image_t *image, int first_y, int last_y, int first_
 
 int min_int(int a, int b);
 
-float **new_filter(int size);
-
 image_t *new_image() {
     return malloc(sizeof(image_t));
 }
