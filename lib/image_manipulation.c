@@ -57,9 +57,7 @@ image_t *copy_image(image_t *original) {
 
 int *new_histogram() {
     int *histogram = malloc(HISTOGRAM_SIZE * sizeof(int));
-    for (int i = 0; i < HISTOGRAM_SIZE; ++i) {
-        histogram[i] = 0;
-    }
+    memset(histogram, 0, HISTOGRAM_SIZE * sizeof(int));
     return histogram;
 }
 
@@ -351,11 +349,8 @@ unsigned char closest_level(unsigned char value, int n_tones) {
 int *compute_histogram(image_t *image) {
     int *histogram = new_histogram();
 
-    image_t *gs_image = image;
-    if (image->colorspace == JCS_RGB) {
-        gs_image = copy_image(image);
-        rgb_to_luminance(gs_image);
-    }
+    image_t *gs_image = copy_image(image);
+    rgb_to_luminance(gs_image);
 
     for (int row = 0; row < gs_image->height; ++row) {
         for (int col = 0; col < gs_image->width; ++col) {
@@ -387,12 +382,12 @@ image_t *histogram_plot(int *histogram) {
         normalized_histogram[col] = (int) (scale_factor * histogram[col]);
 
         //paint column accordingly
-        int bottom = plot->height - 1;
-        for (int row = bottom; row > bottom - normalized_histogram[col]; --row) {
-            plot->pixels[row][col] = 0; //black
-        }
-        for (int row = bottom - normalized_histogram[col]; row >= 0; --row) {
-            plot->pixels[row][col] = 255; //white
+        for (int row = plot->height - 1; row >= 0; --row) {
+            if (row >= plot->height - 1 - normalized_histogram[col]) {
+                plot->pixels[row][col] = 0; //black
+            } else {
+                plot->pixels[row][col] = 255; //white
+            }
         }
     }
 
@@ -458,11 +453,8 @@ void equalize_histogram(image_t *image) {
 }
 
 int *compute_norm_cum_histogram(image_t *image) {
-    image_t *gs_image = image;
-    if (image->colorspace == JCS_RGB) {
-        gs_image = copy_image(image);
-        rgb_to_luminance(gs_image);
-    }
+    image_t *gs_image = copy_image(image);
+    rgb_to_luminance(gs_image);
 
     int *hist = compute_histogram(gs_image);
     int *hist_cum = new_histogram();
@@ -474,7 +466,9 @@ int *compute_norm_cum_histogram(image_t *image) {
     for (int i = 1; i < HISTOGRAM_SIZE; ++i) {
         hist_cum[i] = (int) (hist_cum[i - 1] + scale_factor * hist[i]);
     }
+    printf("hist:%d | cum:%d\n", pixels_in_hist, pixels_in_histogram(hist_cum));
     return hist_cum;
+
 }
 
 int pixels_in_histogram(const int *hist) {
