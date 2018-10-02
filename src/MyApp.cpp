@@ -502,32 +502,34 @@ void MyFrame::OnConvolve(wxCommandEvent &event) {
     {
         wxString input = TextEntryDialog->GetValue().Upper();
 
+        float **filter;
         if (wxStrcmp(input, _("GAUSSIAN")) == 0) {
-            convolve(image, gaussian_filter(), false);
+            convolve(image, filter = gaussian_filter(), false);
 
         } else if (wxStrcmp(input, _("LAPLACIAN")) == 0) {
-
+            convolve(image, filter = laplacian_filter(), false);
 
         } else if (wxStrcmp(input, _("HIGH-PASS")) == 0) {
-
+            convolve(image, filter = high_pass_filter(), false);
 
         } else if (wxStrcmp(input, _("PREWITT HX")) == 0) {
-
+            convolve(image, filter = prewitt_hx_filter(), true);
 
         } else if (wxStrcmp(input, _("PREWITT HY")) == 0) {
-
+            convolve(image, filter = prewitt_hy_filter(), true);
 
         } else if (wxStrcmp(input, _("SOBEL HX")) == 0) {
-
+            convolve(image, filter = sobel_hx_filter(), true);
 
         } else if (wxStrcmp(input, _("SOBEL HY")) == 0) {
-
+            convolve(image, filter = sobel_hy_filter(), true);
 
         } else {
             wxLogMessage("Choose one of the filters of the list.");
             return;
         }
 
+        free(filter);
 
         ShowImage();
     }

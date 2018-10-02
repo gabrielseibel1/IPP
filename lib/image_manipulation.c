@@ -785,3 +785,94 @@ float **gaussian_filter() {
 
     return filter;
 }
+
+float **laplacian_filter() {
+    float local_filter[FILTER_SIZE][FILTER_SIZE] =
+            {{0,  -1, 0},
+             {-1, 4,  -1},
+             {0,  -1, 0}};
+
+
+    float **filter = new_filter(FILTER_SIZE);
+    for (int i = 0; i < FILTER_SIZE; ++i) {
+        memcpy(filter[i], local_filter[i], FILTER_SIZE * sizeof(float));
+    }
+
+    return filter;
+}
+
+float **high_pass_filter() {
+    float local_filter[FILTER_SIZE][FILTER_SIZE] =
+            {{-1, -1, -1},
+             {-1, 8,  -1},
+             {-1, -1, -1}};
+
+
+    float **filter = new_filter(FILTER_SIZE);
+    for (int i = 0; i < FILTER_SIZE; ++i) {
+        memcpy(filter[i], local_filter[i], FILTER_SIZE * sizeof(float));
+    }
+
+    return filter;
+}
+
+float **prewitt_hx_filter() {
+    float local_filter[FILTER_SIZE][FILTER_SIZE] =
+            {{-1, 0, 1},
+             {-1, 0, 1},
+             {-1, 0, 1}};
+
+
+    float **filter = new_filter(FILTER_SIZE);
+    for (int i = 0; i < FILTER_SIZE; ++i) {
+        memcpy(filter[i], local_filter[i], FILTER_SIZE * sizeof(float));
+    }
+
+    return filter;
+}
+
+float **prewitt_hy_filter() {
+    float local_filter[FILTER_SIZE][FILTER_SIZE] =
+            {{-1, -1, -1},
+             {0,  0,  0},
+             {1,  1,  1}};
+
+
+    float **filter = new_filter(FILTER_SIZE);
+    for (int i = 0; i < FILTER_SIZE; ++i) {
+        memcpy(filter[i], local_filter[i], FILTER_SIZE * sizeof(float));
+    }
+
+    return filter;
+}
+
+
+float **sobel_hx_filter() {
+    float local_filter[FILTER_SIZE][FILTER_SIZE] =
+            {{-1, 0, 1},
+             {-2, 0, 2},
+             {-1, 0, 1}};
+
+
+    float **filter = new_filter(FILTER_SIZE);
+    for (int i = 0; i < FILTER_SIZE; ++i) {
+        memcpy(filter[i], local_filter[i], FILTER_SIZE * sizeof(float));
+    }
+
+    return filter;
+}
+
+float **sobel_hy_filter() {
+    float local_filter[FILTER_SIZE][FILTER_SIZE] =
+            {{-1, -2, -1},
+             {0,  0,  0},
+             {1,  2,  1}};
+
+
+    float **filter = new_filter(FILTER_SIZE);
+    for (int i = 0; i < FILTER_SIZE; ++i) {
+        memcpy(filter[i], local_filter[i], FILTER_SIZE * sizeof(float));
+    }
+
+    return filter;
+}

@@ -175,9 +175,13 @@ void rotate_90_degrees_clock_wise(image_t *image);
  */
 void convolve(image_t *image, float **filter, boolean clamp);
 
-/**
- * Returns a FILTER_SIZE x FILTER_SIZE gaussian filter
- */
+
 float **gaussian_filter();
+float **laplacian_filter();
+float **high_pass_filter();
+float **prewitt_hx_filter();
+float **prewitt_hy_filter();
+float **sobel_hx_filter();
+float **sobel_hy_filter();
 
 #endif //FPI_ASSIGNMENT_1_IMAGE_MANIPULATION_H

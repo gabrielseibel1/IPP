@@ -9,8 +9,11 @@
       <w>hbox</w>
       <w>jerr</w>
       <w>jsample</w>
+      <w>laplacian</w>
       <w>mult</w>
+      <w>prewitt</w>
       <w>setjmp</w>
+      <w>sobel</w>
       <w>struct</w>
     </words>
   </dictionary>
